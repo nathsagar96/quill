@@ -1,3 +1,9 @@
 spring:
   application:
     name: quill
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: UTC
