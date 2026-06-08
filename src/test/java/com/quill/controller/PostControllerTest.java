@@ -31,6 +31,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import tools.jackson.databind.json.JsonMapper;
 
 @WebMvcTest(PostController.class)
 @Import(TestSecurityConfig.class)
@@ -57,6 +58,9 @@ class PostControllerTest {
 
     @Autowired
     private MockMvcTester mockMvc;
+
+    @Autowired
+    private JsonMapper jsonMapper;
 
     @MockitoBean
     private PostService postService;
@@ -212,7 +216,7 @@ class PostControllerTest {
             assertThat(mockMvc.post()
                             .uri("/api/posts")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"title\":\"Title\",\"body\":\"Body\",\"categoryIds\":[5],\"tagIds\":[7]}"))
+                            .content(jsonMapper.writeValueAsString(request)))
                     .hasStatus(HttpStatus.CREATED)
                     .bodyJson()
                     .extractingPath("$.id")
@@ -227,7 +231,7 @@ class PostControllerTest {
             assertThat(mockMvc.post()
                             .uri("/api/posts")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"title\":\"Title\",\"body\":\"Body\"}"))
+                            .content(jsonMapper.writeValueAsString(new PostRequest("Title", "Body", null, null, null))))
                     .hasStatus(HttpStatus.BAD_REQUEST);
         }
 
@@ -237,7 +241,8 @@ class PostControllerTest {
             assertThat(mockMvc.post()
                             .uri("/api/posts")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"title\":\"T\",\"body\":\"B\",\"categoryIds\":[]}"))
+                            .content(
+                                    jsonMapper.writeValueAsString(new PostRequest("T", "B", null, Set.of(), Set.of()))))
                     .hasStatus(HttpStatus.BAD_REQUEST);
         }
 
@@ -256,7 +261,8 @@ class PostControllerTest {
             assertThat(mockMvc.post()
                             .uri("/api/posts")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"title\":\"Title\",\"body\":\"Body\",\"categoryIds\":[5]}"))
+                            .content(jsonMapper.writeValueAsString(
+                                    new PostRequest("Title", "Body", null, Set.of(CATEGORY_ID), null))))
                     .hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }
@@ -273,7 +279,7 @@ class PostControllerTest {
             assertThat(mockMvc.put()
                             .uri("/api/posts/{id}", POST_ID)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"title\":\"Title\",\"body\":\"Body\",\"categoryIds\":[5],\"tagIds\":[7]}"))
+                            .content(jsonMapper.writeValueAsString(request)))
                     .hasStatusOk()
                     .bodyJson()
                     .extractingPath("$.id")
@@ -291,7 +297,7 @@ class PostControllerTest {
             assertThat(mockMvc.put()
                             .uri("/api/posts/{id}", POST_ID)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"title\":\"Title\",\"body\":\"Body\",\"categoryIds\":[5],\"tagIds\":[7]}"))
+                            .content(jsonMapper.writeValueAsString(request)))
                     .hasStatus(HttpStatus.NOT_FOUND);
         }
 
@@ -300,7 +306,8 @@ class PostControllerTest {
             assertThat(mockMvc.put()
                             .uri("/api/posts/{id}", POST_ID)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"title\":\"Title\",\"body\":\"Body\",\"categoryIds\":[5]}"))
+                            .content(jsonMapper.writeValueAsString(
+                                    new PostRequest("Title", "Body", null, Set.of(CATEGORY_ID), null))))
                     .hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }

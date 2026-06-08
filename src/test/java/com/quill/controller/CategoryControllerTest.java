@@ -23,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import tools.jackson.databind.json.JsonMapper;
 
 @WebMvcTest(CategoryController.class)
 @Import(TestSecurityConfig.class)
@@ -41,6 +42,9 @@ class CategoryControllerTest {
     @Autowired
     private MockMvcTester mockMvc;
 
+    @Autowired
+    private JsonMapper jsonMapper;
+
     @MockitoBean
     private CategoryService categoryService;
 
@@ -55,8 +59,7 @@ class CategoryControllerTest {
             assertThat(mockMvc.get().uri("/api/categories"))
                     .hasStatusOk()
                     .bodyJson()
-                    .isEqualTo(
-                            "[{\"id\":1,\"name\":\"Technology\",\"slug\":\"technology\",\"description\":\"Tech posts\",\"createdAt\":\"2024-01-01T00:00:00Z\",\"updatedAt\":\"2024-01-01T00:00:00Z\"}]");
+                    .isEqualTo(jsonMapper.writeValueAsString(List.of(response)));
             verify(categoryService).findAllCategories();
         }
 
@@ -109,7 +112,7 @@ class CategoryControllerTest {
             assertThat(mockMvc.post()
                             .uri("/api/categories")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"name\":\"Technology\",\"description\":\"Tech posts\"}"))
+                            .content(jsonMapper.writeValueAsString(new CategoryRequest("Technology", "Tech posts"))))
                     .hasStatus(HttpStatus.CREATED)
                     .bodyJson()
                     .extractingPath("$.id")
@@ -133,7 +136,7 @@ class CategoryControllerTest {
             assertThat(mockMvc.post()
                             .uri("/api/categories")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"name\":\"Tech\"}"))
+                            .content(jsonMapper.writeValueAsString(new CategoryRequest("Tech", null))))
                     .hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }
@@ -158,7 +161,7 @@ class CategoryControllerTest {
             assertThat(mockMvc.put()
                             .uri("/api/categories/{id}", CATEGORY_ID)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"name\":\"Updated\"}"))
+                            .content(jsonMapper.writeValueAsString(new CategoryRequest("Updated", null))))
                     .hasStatusOk()
                     .bodyJson()
                     .extractingPath("$.name")
@@ -172,7 +175,7 @@ class CategoryControllerTest {
             assertThat(mockMvc.put()
                             .uri("/api/categories/{id}", CATEGORY_ID)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"name\":\"X\"}"))
+                            .content(jsonMapper.writeValueAsString(new CategoryRequest("X", null))))
                     .hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }

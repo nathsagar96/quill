@@ -23,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import tools.jackson.databind.json.JsonMapper;
 
 @WebMvcTest(TagController.class)
 @Import(TestSecurityConfig.class)
@@ -35,6 +36,9 @@ class TagControllerTest {
 
     @Autowired
     private MockMvcTester mockMvc;
+
+    @Autowired
+    private JsonMapper jsonMapper;
 
     @MockitoBean
     private TagService tagService;
@@ -50,8 +54,7 @@ class TagControllerTest {
             assertThat(mockMvc.get().uri("/api/tags"))
                     .hasStatusOk()
                     .bodyJson()
-                    .isEqualTo(
-                            "[{\"id\":1,\"name\":\"java\",\"slug\":\"java\",\"createdAt\":\"2024-01-01T00:00:00Z\",\"updatedAt\":\"2024-01-01T00:00:00Z\"}]");
+                    .isEqualTo(jsonMapper.writeValueAsString(List.of(response)));
             verify(tagService).findAllTags();
         }
 
@@ -104,7 +107,7 @@ class TagControllerTest {
             assertThat(mockMvc.post()
                             .uri("/api/tags")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"name\":\"java\"}"))
+                            .content(jsonMapper.writeValueAsString(new TagRequest("java"))))
                     .hasStatus(HttpStatus.CREATED)
                     .bodyJson()
                     .extractingPath("$.id")
@@ -128,7 +131,7 @@ class TagControllerTest {
             assertThat(mockMvc.post()
                             .uri("/api/tags")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"name\":\"java\"}"))
+                            .content(jsonMapper.writeValueAsString(new TagRequest("java"))))
                     .hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }
@@ -152,7 +155,7 @@ class TagControllerTest {
             assertThat(mockMvc.put()
                             .uri("/api/tags/{id}", TAG_ID)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"name\":\"updated-java\"}"))
+                            .content(jsonMapper.writeValueAsString(new TagRequest("updated-java"))))
                     .hasStatusOk()
                     .bodyJson()
                     .extractingPath("$.name")
@@ -166,7 +169,7 @@ class TagControllerTest {
             assertThat(mockMvc.put()
                             .uri("/api/tags/{id}", TAG_ID)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"name\":\"x\"}"))
+                            .content(jsonMapper.writeValueAsString(new TagRequest("x"))))
                     .hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }

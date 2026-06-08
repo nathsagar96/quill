@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import tools.jackson.databind.json.JsonMapper;
 
 @WebMvcTest(UserController.class)
 @Import(TestSecurityConfig.class)
@@ -32,6 +33,9 @@ class UserControllerTest {
 
     @Autowired
     private MockMvcTester mockMvc;
+
+    @Autowired
+    private JsonMapper jsonMapper;
 
     @MockitoBean
     private UserService userService;
@@ -84,12 +88,11 @@ class UserControllerTest {
             var updated = new AuthorResponse(USER_ID, USERNAME, "New Name", "New bio", "https://example.com/new.jpg");
             when(userService.updateProfile(USERNAME, request)).thenReturn(updated);
 
-            assertThat(
-                            mockMvc.put()
-                                    .uri("/api/users/me")
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content(
-                                            "{\"displayName\":\"New Name\",\"bio\":\"New bio\",\"avatarUrl\":\"https://example.com/new.jpg\"}"))
+            assertThat(mockMvc.put()
+                            .uri("/api/users/me")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(
+                                    new UpdateProfileRequest("New Name", "New bio", "https://example.com/new.jpg"))))
                     .hasStatusOk()
                     .bodyJson()
                     .extractingPath("$.displayName")
@@ -108,7 +111,7 @@ class UserControllerTest {
             assertThat(mockMvc.put()
                             .uri("/api/users/me")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"bio\":\"Just bio\"}"))
+                            .content(jsonMapper.writeValueAsString(new UpdateProfileRequest(null, "Just bio", null))))
                     .hasStatusOk()
                     .bodyJson()
                     .extractingPath("$.bio")
@@ -121,7 +124,7 @@ class UserControllerTest {
             assertThat(mockMvc.put()
                             .uri("/api/users/me")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"bio\":\"test\"}"))
+                            .content(jsonMapper.writeValueAsString(new UpdateProfileRequest(null, "test", null))))
                     .hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }

@@ -26,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import tools.jackson.databind.json.JsonMapper;
 
 @WebMvcTest(CommentController.class)
 @Import(TestSecurityConfig.class)
@@ -47,6 +48,9 @@ class CommentControllerTest {
 
     @Autowired
     private MockMvcTester mockMvc;
+
+    @Autowired
+    private JsonMapper jsonMapper;
 
     @MockitoBean
     private CommentService commentService;
@@ -105,7 +109,7 @@ class CommentControllerTest {
             assertThat(mockMvc.post()
                             .uri("/api/posts/{postId}/comments", POST_ID)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"body\":\"Nice post!\"}"))
+                            .content(jsonMapper.writeValueAsString(request)))
                     .hasStatus(HttpStatus.CREATED)
                     .bodyJson()
                     .extractingPath("$.id")
@@ -129,7 +133,7 @@ class CommentControllerTest {
             assertThat(mockMvc.post()
                             .uri("/api/posts/{postId}/comments", POST_ID)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"body\":\"Nice post!\"}"))
+                            .content(jsonMapper.writeValueAsString(request)))
                     .hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }
