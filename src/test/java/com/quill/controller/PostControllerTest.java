@@ -1,9 +1,19 @@
 package com.quill.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.quill.config.TestSecurityConfig;
 import com.quill.dto.PostRequest;
 import com.quill.dto.PostResponse;
 import com.quill.exception.PostNotFoundException;
 import com.quill.service.PostService;
+import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -18,16 +28,6 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-
-import java.time.Instant;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @WebMvcTest(PostController.class)
 @Import(TestSecurityConfig.class)
@@ -88,8 +88,8 @@ class PostControllerTest {
         }
 
         @Test
-        void requiresAuthentication() {
-            assertThat(mockMvc.get().uri("/api/posts")).hasStatus(HttpStatus.UNAUTHORIZED);
+        void allowsAnonymousAccess() {
+            assertThat(mockMvc.get().uri("/api/posts")).hasStatusOk();
         }
     }
 
@@ -120,8 +120,8 @@ class PostControllerTest {
         }
 
         @Test
-        void requiresAuthentication() {
-            assertThat(mockMvc.get().uri("/api/posts/{id}", POST_ID)).hasStatus(HttpStatus.UNAUTHORIZED);
+        void allowsAnonymousAccess() {
+            assertThat(mockMvc.get().uri("/api/posts/{id}", POST_ID)).hasStatusOk();
         }
     }
 
@@ -171,9 +171,9 @@ class PostControllerTest {
     class UpdatePost {
 
         @Test
-        @WithMockUser
+        @WithMockUser(username = USERNAME)
         void updatesAndReturns200() {
-            when(postService.updatePost(POST_ID, request)).thenReturn(response);
+            when(postService.updatePost(POST_ID, request, USERNAME, false)).thenReturn(response);
 
             assertThat(mockMvc.put()
                             .uri("/api/posts/{id}", POST_ID)
@@ -184,13 +184,14 @@ class PostControllerTest {
                     .extractingPath("$.id")
                     .asNumber()
                     .isEqualTo(10);
-            verify(postService).updatePost(eq(POST_ID), any(PostRequest.class));
+            verify(postService).updatePost(eq(POST_ID), any(PostRequest.class), eq(USERNAME), eq(false));
         }
 
         @Test
-        @WithMockUser
+        @WithMockUser(username = USERNAME)
         void returns404WhenNotFound() {
-            when(postService.updatePost(POST_ID, request)).thenThrow(new PostNotFoundException(POST_ID));
+            when(postService.updatePost(POST_ID, request, USERNAME, false))
+                    .thenThrow(new PostNotFoundException(POST_ID));
 
             assertThat(mockMvc.put()
                             .uri("/api/posts/{id}", POST_ID)

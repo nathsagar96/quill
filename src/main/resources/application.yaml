@@ -13,5 +13,5 @@ spring:
 
 quill:
   jwt:
-    key-store: config/jwt-keys.json
+    secret: Y5JIUo3DKKtevtV4LKYcLiLQwU8AkEXNrTMkWuLdZ+g=
     expiration: 24h

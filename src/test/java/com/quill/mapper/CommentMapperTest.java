@@ -1,17 +1,16 @@
 package com.quill.mapper;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.quill.dto.CommentRequest;
 import com.quill.dto.CommentResponse;
 import com.quill.model.Comment;
 import com.quill.model.Post;
 import com.quill.model.User;
+import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import java.time.Instant;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("CommentMapper")
 class CommentMapperTest {

@@ -1,8 +1,14 @@
 package com.quill.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.quill.dto.CommentRequest;
 import com.quill.dto.CommentResponse;
-import com.quill.exception.CommentNotFoundException;
 import com.quill.exception.PostNotFoundException;
 import com.quill.exception.UserNotFoundException;
 import com.quill.mapper.CommentMapper;
@@ -12,6 +18,9 @@ import com.quill.model.User;
 import com.quill.repository.CommentRepository;
 import com.quill.repository.PostRepository;
 import com.quill.repository.UserRepository;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -24,23 +33,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CommentService")
 class CommentServiceTest {
 
     private static final Long COMMENT_ID = 100L;
-    private static final Long MISSING_COMMENT_ID = 999L;
     private static final Long POST_ID = 10L;
     private static final Long MISSING_POST_ID = 99L;
     private static final Long AUTHOR_ID = 1L;
@@ -139,36 +136,6 @@ class CommentServiceTest {
             Page<CommentResponse> result = commentService.findAllCommentsByPostId(POST_ID, pageable);
 
             assertThat(result.getContent()).isEmpty();
-            verify(commentMapper, never()).toResponse(any());
-        }
-    }
-
-    @Nested
-    @DisplayName("findCommentById")
-    class FindCommentById {
-
-        @Test
-        @DisplayName("returns a mapped response when the comment exists")
-        void returnsMappedResponse() {
-            when(commentRepository.findById(COMMENT_ID)).thenReturn(Optional.of(comment));
-            when(commentMapper.toResponse(comment)).thenReturn(response);
-
-            CommentResponse result = commentService.findCommentById(COMMENT_ID);
-
-            assertThat(result).isEqualTo(response);
-            verify(commentRepository).findById(COMMENT_ID);
-            verify(commentMapper).toResponse(comment);
-        }
-
-        @Test
-        @DisplayName("throws CommentNotFoundException with the missing id when the comment does not exist")
-        void throwsWhenMissing() {
-            when(commentRepository.findById(MISSING_COMMENT_ID)).thenReturn(Optional.empty());
-
-            var thrown = assertThrows(
-                    CommentNotFoundException.class, () -> commentService.findCommentById(MISSING_COMMENT_ID));
-            assertThat(thrown).hasMessageContaining(String.valueOf(MISSING_COMMENT_ID));
-
             verify(commentMapper, never()).toResponse(any());
         }
     }

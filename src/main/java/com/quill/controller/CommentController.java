@@ -29,11 +29,6 @@ public class CommentController {
         return ResponseEntity.ok(commentService.findAllCommentsByPostId(postId, pageable));
     }
 
-    @GetMapping("/api/comments/{id}")
-    public ResponseEntity<CommentResponse> findCommentById(@PathVariable Long id) {
-        return ResponseEntity.ok(commentService.findCommentById(id));
-    }
-
     @PostMapping("/api/posts/{postId}/comments")
     public ResponseEntity<CommentResponse> createComment(
             @PathVariable Long postId, @Valid @RequestBody CommentRequest request, Authentication authentication) {

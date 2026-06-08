@@ -1,9 +1,15 @@
 package com.quill.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.quill.config.TestSecurityConfig;
 import com.quill.dto.CommentRequest;
 import com.quill.dto.CommentResponse;
-import com.quill.exception.CommentNotFoundException;
 import com.quill.service.CommentService;
+import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -18,13 +24,6 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-
-import java.time.Instant;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @WebMvcTest(CommentController.class)
 @Import(TestSecurityConfig.class)
@@ -89,38 +88,6 @@ class CommentControllerTest {
         void requiresAuthentication() {
             assertThat(mockMvc.get().uri("/api/posts/{postId}/comments", POST_ID))
                     .hasStatus(HttpStatus.UNAUTHORIZED);
-        }
-    }
-
-    @Nested
-    @DisplayName("GET /api/comments/{id}")
-    class FindCommentById {
-
-        @Test
-        @WithMockUser
-        void returnsCommentWhenFound() {
-            when(commentService.findCommentById(COMMENT_ID)).thenReturn(response);
-
-            assertThat(mockMvc.get().uri("/api/comments/{id}", COMMENT_ID))
-                    .hasStatusOk()
-                    .bodyJson()
-                    .extractingPath("$.id")
-                    .asNumber()
-                    .isEqualTo(100);
-            verify(commentService).findCommentById(COMMENT_ID);
-        }
-
-        @Test
-        @WithMockUser
-        void returns404WhenNotFound() {
-            when(commentService.findCommentById(COMMENT_ID)).thenThrow(new CommentNotFoundException(COMMENT_ID));
-
-            assertThat(mockMvc.get().uri("/api/comments/{id}", COMMENT_ID)).hasStatus(HttpStatus.NOT_FOUND);
-        }
-
-        @Test
-        void requiresAuthentication() {
-            assertThat(mockMvc.get().uri("/api/comments/{id}", COMMENT_ID)).hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }
 

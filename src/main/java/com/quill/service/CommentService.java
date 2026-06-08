@@ -2,7 +2,6 @@ package com.quill.service;
 
 import com.quill.dto.CommentRequest;
 import com.quill.dto.CommentResponse;
-import com.quill.exception.CommentNotFoundException;
 import com.quill.exception.PostNotFoundException;
 import com.quill.exception.UserNotFoundException;
 import com.quill.mapper.CommentMapper;
@@ -37,14 +36,6 @@ public class CommentService {
                 pageable.getPageNumber(),
                 pageable.getPageSize());
         return commentRepository.findByPostId(postId, pageable).map(commentMapper::toResponse);
-    }
-
-    public CommentResponse findCommentById(Long id) {
-        log.debug("Fetching comment with id={}", id);
-        return commentRepository
-                .findById(id)
-                .map(commentMapper::toResponse)
-                .orElseThrow(() -> new CommentNotFoundException(id));
     }
 
     @Transactional

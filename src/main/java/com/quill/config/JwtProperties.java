@@ -1,9 +1,15 @@
 package com.quill.config;
 
+import io.jsonwebtoken.security.Keys;
+import java.time.Duration;
+import javax.crypto.SecretKey;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.nio.file.Path;
-import java.time.Duration;
-
 @ConfigurationProperties(prefix = "quill.jwt")
-public record JwtProperties(Path keyStore, Duration expiration) {}
+public record JwtProperties(String secret, Duration expiration) {
+
+    public SecretKey signingKey() {
+        byte[] keyBytes = java.util.Base64.getDecoder().decode(secret);
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+}

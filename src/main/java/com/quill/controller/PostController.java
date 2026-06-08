@@ -45,8 +45,13 @@ public class PostController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<PostResponse> updatePost(@PathVariable Long id, @Valid @RequestBody PostRequest request) {
-        return ResponseEntity.ok(postService.updatePost(id, request));
+    public ResponseEntity<PostResponse> updatePost(
+            @PathVariable Long id, @Valid @RequestBody PostRequest request, Authentication authentication) {
+        String username = authentication.getName();
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        PostResponse response = postService.updatePost(id, request, username, isAdmin);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")

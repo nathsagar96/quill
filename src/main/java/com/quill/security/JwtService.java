@@ -1,30 +1,38 @@
 package com.quill.security;
 
 import com.quill.config.JwtProperties;
+import io.jsonwebtoken.Jwts;
+import java.time.Instant;
+import java.util.Date;
+import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
-
-import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
 public class JwtService {
 
-    private final JwtEncoder jwtEncoder;
     private final JwtProperties jwtProperties;
 
     public String generateToken(UserDetails userDetails) {
         Instant now = Instant.now();
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("quill")
-                .issuedAt(now)
-                .expiresAt(now.plus(jwtProperties.expiration()))
+        SecretKey key = jwtProperties.signingKey();
+        return Jwts.builder()
                 .subject(userDetails.getUsername())
-                .build();
-        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+                .issuer("quill")
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plus(jwtProperties.expiration())))
+                .signWith(key)
+                .compact();
+    }
+
+    public String validateToken(String token) {
+        return Jwts.parser()
+                .verifyWith(jwtProperties.signingKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getSubject();
     }
 }

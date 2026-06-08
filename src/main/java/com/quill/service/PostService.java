@@ -2,6 +2,7 @@ package com.quill.service;
 
 import com.quill.dto.PostRequest;
 import com.quill.dto.PostResponse;
+import com.quill.exception.ForbiddenOperationException;
 import com.quill.exception.PostNotFoundException;
 import com.quill.exception.UserNotFoundException;
 import com.quill.mapper.PostMapper;
@@ -13,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,9 +52,13 @@ public class PostService {
     }
 
     @Transactional
-    public PostResponse updatePost(Long id, PostRequest request) {
+    public PostResponse updatePost(Long id, PostRequest request, String username, boolean isAdmin) {
         log.info("Updating post with id={}", id);
         Post existing = postRepository.findById(id).orElseThrow(() -> new PostNotFoundException(id));
+        String authorUsername = existing.getAuthor().getUsername();
+        if (!authorUsername.equals(username) && !isAdmin) {
+            throw new ForbiddenOperationException("User '%s' is not the owner of post %d".formatted(username, id));
+        }
         existing.setTitle(request.title());
         existing.setBody(request.body());
         log.info("Updated post with id={}", id);
@@ -62,7 +66,6 @@ public class PostService {
     }
 
     @Transactional
-    @PreAuthorize("hasRole('ADMIN')")
     public void deletePost(Long id) {
         log.info("Deleting post with id={}", id);
         if (!postRepository.existsById(id)) {

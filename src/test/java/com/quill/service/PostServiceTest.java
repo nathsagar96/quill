@@ -1,7 +1,15 @@
 package com.quill.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.quill.dto.PostRequest;
 import com.quill.dto.PostResponse;
+import com.quill.exception.ForbiddenOperationException;
 import com.quill.exception.PostNotFoundException;
 import com.quill.exception.UserNotFoundException;
 import com.quill.mapper.PostMapper;
@@ -9,6 +17,9 @@ import com.quill.model.Post;
 import com.quill.model.User;
 import com.quill.repository.PostRepository;
 import com.quill.repository.UserRepository;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -20,17 +31,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PostService")
@@ -186,12 +186,12 @@ class PostServiceTest {
     class UpdatePost {
 
         @Test
-        @DisplayName("mutates the loaded entity and returns the mapped response")
-        void updatesAndReturns() {
+        @DisplayName("allows the owner to update and returns the mapped response")
+        void ownerCanUpdate() {
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(post));
             when(postMapper.toResponse(post)).thenReturn(response);
 
-            PostResponse result = postService.updatePost(POST_ID, request);
+            PostResponse result = postService.updatePost(POST_ID, request, USERNAME, false);
 
             assertThat(result).isEqualTo(response);
             assertThat(post.getTitle()).isEqualTo(request.title());
@@ -199,12 +199,36 @@ class PostServiceTest {
         }
 
         @Test
+        @DisplayName("allows an admin to update any post")
+        void adminCanUpdate() {
+            when(postRepository.findById(POST_ID)).thenReturn(Optional.of(post));
+            when(postMapper.toResponse(post)).thenReturn(response);
+
+            PostResponse result = postService.updatePost(POST_ID, request, "other", true);
+
+            assertThat(result).isEqualTo(response);
+            assertThat(post.getTitle()).isEqualTo(request.title());
+            assertThat(post.getBody()).isEqualTo(request.body());
+        }
+
+        @Test
+        @DisplayName("throws ForbiddenOperationException when a non-owner non-admin tries to update")
+        void throwsWhenNotOwner() {
+            when(postRepository.findById(POST_ID)).thenReturn(Optional.of(post));
+
+            var thrown = assertThrows(
+                    ForbiddenOperationException.class, () -> postService.updatePost(POST_ID, request, "other", false));
+            assertThat(thrown).hasMessageContaining("other").hasMessageContaining(String.valueOf(POST_ID));
+        }
+
+        @Test
         @DisplayName("throws PostNotFoundException with the missing id when the post does not exist")
         void throwsWhenPostMissing() {
             when(postRepository.findById(MISSING_POST_ID)).thenReturn(Optional.empty());
 
-            var thrown =
-                    assertThrows(PostNotFoundException.class, () -> postService.updatePost(MISSING_POST_ID, request));
+            var thrown = assertThrows(
+                    PostNotFoundException.class,
+                    () -> postService.updatePost(MISSING_POST_ID, request, USERNAME, false));
             assertThat(thrown).hasMessageContaining(String.valueOf(MISSING_POST_ID));
         }
     }
