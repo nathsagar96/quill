@@ -6,8 +6,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.quill.config.TestSecurityConfig;
-import com.quill.dto.CategoryRequest;
-import com.quill.dto.CategoryResponse;
+import com.quill.dto.request.CategoryRequest;
+import com.quill.dto.response.CategoryResponse;
 import com.quill.exception.CategoryNotFoundException;
 import com.quill.service.CategoryService;
 import java.time.Instant;

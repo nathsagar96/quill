@@ -1,7 +1,8 @@
 package com.quill.mapper;
 
-import com.quill.dto.PostRequest;
-import com.quill.dto.PostResponse;
+import com.quill.dto.request.PostRequest;
+import com.quill.dto.response.AuthorResponse;
+import com.quill.dto.response.PostResponse;
 import com.quill.model.Category;
 import com.quill.model.Post;
 import com.quill.model.Tag;
@@ -19,11 +20,16 @@ public class PostMapper {
                 entity.getTitle(),
                 entity.getBody(),
                 entity.getExcerpt(),
-                entity.getAuthor().getId(),
+                toAuthorResponse(entity.getAuthor()),
                 entity.getCategories().stream().map(Category::getId).collect(Collectors.toSet()),
                 entity.getTags().stream().map(Tag::getId).collect(Collectors.toSet()),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
+    }
+
+    public AuthorResponse toAuthorResponse(User user) {
+        return new AuthorResponse(
+                user.getId(), user.getUsername(), user.getDisplayName(), user.getBio(), user.getAvatarUrl());
     }
 
     public Post toEntity(PostRequest request, User author, Set<Category> categories, Set<Tag> tags) {

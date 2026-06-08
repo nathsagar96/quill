@@ -8,8 +8,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.quill.config.TestSecurityConfig;
-import com.quill.dto.PostRequest;
-import com.quill.dto.PostResponse;
+import com.quill.dto.request.PostRequest;
+import com.quill.dto.response.AuthorResponse;
+import com.quill.dto.response.PostResponse;
 import com.quill.exception.PostNotFoundException;
 import com.quill.service.PostService;
 import java.time.Instant;
@@ -46,7 +47,7 @@ class PostControllerTest {
             "Title",
             "Body",
             null,
-            AUTHOR_ID,
+            new AuthorResponse(AUTHOR_ID, null, null, null, null),
             Set.of(CATEGORY_ID),
             Set.of(TAG_ID),
             Instant.parse("2024-01-01T00:00:00Z"),

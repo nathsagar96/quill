@@ -1,7 +1,7 @@
 package com.quill.service;
 
-import com.quill.dto.CommentRequest;
-import com.quill.dto.CommentResponse;
+import com.quill.dto.request.CommentRequest;
+import com.quill.dto.response.CommentResponse;
 import com.quill.exception.PostNotFoundException;
 import com.quill.exception.UserNotFoundException;
 import com.quill.mapper.CommentMapper;

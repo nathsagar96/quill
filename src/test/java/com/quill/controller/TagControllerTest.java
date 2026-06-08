@@ -6,8 +6,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.quill.config.TestSecurityConfig;
-import com.quill.dto.TagRequest;
-import com.quill.dto.TagResponse;
+import com.quill.dto.request.TagRequest;
+import com.quill.dto.response.TagResponse;
 import com.quill.exception.TagNotFoundException;
 import com.quill.service.TagService;
 import java.time.Instant;

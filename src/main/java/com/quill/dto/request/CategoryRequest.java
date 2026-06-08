@@ -1,4 +1,4 @@
-package com.quill.dto;
+package com.quill.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

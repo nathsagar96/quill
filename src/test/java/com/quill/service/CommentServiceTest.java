@@ -7,8 +7,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.quill.dto.CommentRequest;
-import com.quill.dto.CommentResponse;
+import com.quill.dto.request.CommentRequest;
+import com.quill.dto.response.AuthorResponse;
+import com.quill.dto.response.CommentResponse;
 import com.quill.exception.PostNotFoundException;
 import com.quill.exception.UserNotFoundException;
 import com.quill.mapper.CommentMapper;
@@ -86,7 +87,7 @@ class CommentServiceTest {
                 COMMENT_ID,
                 "Nice post!",
                 POST_ID,
-                AUTHOR_ID,
+                new AuthorResponse(AUTHOR_ID, null, null, null, null),
                 Instant.parse("2024-01-01T00:00:00Z"),
                 Instant.parse("2024-01-01T00:00:00Z"));
     }
@@ -111,7 +112,7 @@ class CommentServiceTest {
                     101L,
                     "Great!",
                     POST_ID,
-                    AUTHOR_ID,
+                    new AuthorResponse(AUTHOR_ID, null, null, null, null),
                     Instant.parse("2024-01-01T01:00:00Z"),
                     Instant.parse("2024-01-01T01:00:00Z"));
             var page = new PageImpl<>(List.of(comment, other), pageable, 2);

@@ -1,7 +1,7 @@
 package com.quill.controller;
 
-import com.quill.dto.CommentRequest;
-import com.quill.dto.CommentResponse;
+import com.quill.dto.request.CommentRequest;
+import com.quill.dto.response.CommentResponse;
 import com.quill.service.CommentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

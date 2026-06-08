@@ -7,8 +7,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.quill.dto.PostRequest;
-import com.quill.dto.PostResponse;
+import com.quill.dto.request.PostRequest;
+import com.quill.dto.response.AuthorResponse;
+import com.quill.dto.response.PostResponse;
 import com.quill.exception.CategoryNotFoundException;
 import com.quill.exception.ForbiddenOperationException;
 import com.quill.exception.PostNotFoundException;
@@ -96,7 +97,7 @@ class PostServiceTest {
                 "New title",
                 "New body",
                 null,
-                AUTHOR_ID,
+                new AuthorResponse(AUTHOR_ID, null, null, null, null),
                 Set.of(CATEGORY_ID),
                 Set.of(TAG_ID),
                 Instant.parse("2024-01-01T00:00:00Z"),
@@ -111,8 +112,16 @@ class PostServiceTest {
         @DisplayName("delegates to repository and maps each post via the mapper")
         void delegatesToRepositoryAndMaps() {
             var pageable = PageRequest.of(0, 10);
-            var otherResponse =
-                    new PostResponse(11L, "Other", "...", null, AUTHOR_ID, Set.of(1L), Set.of(), null, null);
+            var otherResponse = new PostResponse(
+                    11L,
+                    "Other",
+                    "...",
+                    null,
+                    new AuthorResponse(AUTHOR_ID, null, null, null, null),
+                    Set.of(1L),
+                    Set.of(),
+                    null,
+                    null);
             var page = new PageImpl<>(List.of(post), pageable, 1);
             when(postRepository.findAll(pageable)).thenReturn(page);
             when(postMapper.toResponse(post)).thenReturn(response);

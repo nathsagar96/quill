@@ -1,7 +1,7 @@
 package com.quill.controller;
 
-import com.quill.dto.PostRequest;
-import com.quill.dto.PostResponse;
+import com.quill.dto.request.PostRequest;
+import com.quill.dto.response.PostResponse;
 import com.quill.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

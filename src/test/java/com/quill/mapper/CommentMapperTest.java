@@ -2,8 +2,8 @@ package com.quill.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.quill.dto.CommentRequest;
-import com.quill.dto.CommentResponse;
+import com.quill.dto.request.CommentRequest;
+import com.quill.dto.response.CommentResponse;
 import com.quill.model.Comment;
 import com.quill.model.Post;
 import com.quill.model.User;
@@ -42,7 +42,11 @@ class CommentMapperTest {
             assertThat(response.id()).isEqualTo(42L);
             assertThat(response.body()).isEqualTo("Nice post!");
             assertThat(response.postId()).isEqualTo(10L);
-            assertThat(response.authorId()).isEqualTo(7L);
+            assertThat(response.author().id()).isEqualTo(7L);
+            assertThat(response.author().username()).isNull();
+            assertThat(response.author().displayName()).isNull();
+            assertThat(response.author().bio()).isNull();
+            assertThat(response.author().avatarUrl()).isNull();
             assertThat(response.createdAt()).isEqualTo(created);
             assertThat(response.updatedAt()).isEqualTo(updated);
         }

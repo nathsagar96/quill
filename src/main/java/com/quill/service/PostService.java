@@ -1,7 +1,7 @@
 package com.quill.service;
 
-import com.quill.dto.PostRequest;
-import com.quill.dto.PostResponse;
+import com.quill.dto.request.PostRequest;
+import com.quill.dto.response.PostResponse;
 import com.quill.exception.CategoryNotFoundException;
 import com.quill.exception.ForbiddenOperationException;
 import com.quill.exception.PostNotFoundException;

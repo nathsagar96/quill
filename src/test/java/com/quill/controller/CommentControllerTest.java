@@ -5,8 +5,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.quill.config.TestSecurityConfig;
-import com.quill.dto.CommentRequest;
-import com.quill.dto.CommentResponse;
+import com.quill.dto.request.CommentRequest;
+import com.quill.dto.response.AuthorResponse;
+import com.quill.dto.response.CommentResponse;
 import com.quill.service.CommentService;
 import java.time.Instant;
 import java.util.List;
@@ -39,7 +40,7 @@ class CommentControllerTest {
             COMMENT_ID,
             "Nice post!",
             POST_ID,
-            AUTHOR_ID,
+            new AuthorResponse(AUTHOR_ID, null, null, null, null),
             Instant.parse("2024-01-01T00:00:00Z"),
             Instant.parse("2024-01-01T00:00:00Z"));
     private final CommentRequest request = new CommentRequest("Nice post!");

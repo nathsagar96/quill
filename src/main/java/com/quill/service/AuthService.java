@@ -1,8 +1,8 @@
 package com.quill.service;
 
-import com.quill.dto.AuthResponse;
-import com.quill.dto.LoginRequest;
-import com.quill.dto.RegisterRequest;
+import com.quill.dto.request.LoginRequest;
+import com.quill.dto.request.RegisterRequest;
+import com.quill.dto.response.AuthResponse;
 import com.quill.exception.DuplicateEmailException;
 import com.quill.exception.DuplicateUsernameException;
 import com.quill.model.User;
@@ -46,6 +46,8 @@ public class AuthService {
                 .email(request.email())
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .displayName(request.displayName())
+                .bio(request.bio())
+                .avatarUrl(request.avatarUrl())
                 .build();
 
         User saved = userRepository.save(user);
@@ -72,6 +74,13 @@ public class AuthService {
 
     private AuthResponse toAuthResponse(String token, User user) {
         return new AuthResponse(
-                token, "Bearer", user.getId(), user.getUsername(), user.getEmail(), user.getDisplayName());
+                token,
+                "Bearer",
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getDisplayName(),
+                user.getBio(),
+                user.getAvatarUrl());
     }
 }

@@ -2,8 +2,8 @@ package com.quill.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.quill.dto.PostRequest;
-import com.quill.dto.PostResponse;
+import com.quill.dto.request.PostRequest;
+import com.quill.dto.response.PostResponse;
 import com.quill.model.Category;
 import com.quill.model.Post;
 import com.quill.model.Tag;
@@ -47,7 +47,11 @@ class PostMapperTest {
             assertThat(response.id()).isEqualTo(42L);
             assertThat(response.title()).isEqualTo("Title");
             assertThat(response.body()).isEqualTo("Body");
-            assertThat(response.authorId()).isEqualTo(7L);
+            assertThat(response.author().id()).isEqualTo(7L);
+            assertThat(response.author().username()).isNull();
+            assertThat(response.author().displayName()).isNull();
+            assertThat(response.author().bio()).isNull();
+            assertThat(response.author().avatarUrl()).isNull();
             assertThat(response.categoryIds()).containsExactly(1L);
             assertThat(response.tagIds()).containsExactly(2L);
             assertThat(response.createdAt()).isEqualTo(created);

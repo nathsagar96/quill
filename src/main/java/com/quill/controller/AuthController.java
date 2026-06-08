@@ -1,8 +1,8 @@
 package com.quill.controller;
 
-import com.quill.dto.AuthResponse;
-import com.quill.dto.LoginRequest;
-import com.quill.dto.RegisterRequest;
+import com.quill.dto.request.LoginRequest;
+import com.quill.dto.request.RegisterRequest;
+import com.quill.dto.response.AuthResponse;
 import com.quill.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

@@ -2,8 +2,8 @@ package com.quill.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.quill.dto.CategoryRequest;
-import com.quill.dto.CategoryResponse;
+import com.quill.dto.request.CategoryRequest;
+import com.quill.dto.response.CategoryResponse;
 import com.quill.model.Category;
 import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;

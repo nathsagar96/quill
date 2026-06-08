@@ -1,7 +1,7 @@
 package com.quill.service;
 
-import com.quill.dto.TagRequest;
-import com.quill.dto.TagResponse;
+import com.quill.dto.request.TagRequest;
+import com.quill.dto.response.TagResponse;
 import com.quill.exception.TagNotFoundException;
 import com.quill.mapper.TagMapper;
 import com.quill.model.Tag;

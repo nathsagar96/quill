@@ -2,8 +2,8 @@ package com.quill.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.quill.dto.TagRequest;
-import com.quill.dto.TagResponse;
+import com.quill.dto.request.TagRequest;
+import com.quill.dto.response.TagResponse;
 import com.quill.model.Tag;
 import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;

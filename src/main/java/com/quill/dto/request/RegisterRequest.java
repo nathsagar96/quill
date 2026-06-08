@@ -1,4 +1,4 @@
-package com.quill.dto;
+package com.quill.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -8,4 +8,6 @@ public record RegisterRequest(
         @NotBlank @Size(min = 3, max = 50) String username,
         @NotBlank @Email @Size(max = 255) String email,
         @NotBlank @Size(min = 8, max = 128) String password,
-        @Size(max = 100) String displayName) {}
+        @Size(max = 100) String displayName,
+        @Size(max = 500) String bio,
+        @Size(max = 255) String avatarUrl) {}

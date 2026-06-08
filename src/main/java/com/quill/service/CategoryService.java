@@ -1,7 +1,7 @@
 package com.quill.service;
 
-import com.quill.dto.CategoryRequest;
-import com.quill.dto.CategoryResponse;
+import com.quill.dto.request.CategoryRequest;
+import com.quill.dto.response.CategoryResponse;
 import com.quill.exception.CategoryNotFoundException;
 import com.quill.mapper.CategoryMapper;
 import com.quill.model.Category;

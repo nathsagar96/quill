@@ -1,4 +1,4 @@
-package com.quill.dto;
+package com.quill.dto.response;
 
 import java.time.Instant;
 import java.util.Set;
@@ -8,7 +8,7 @@ public record PostResponse(
         String title,
         String body,
         String excerpt,
-        Long authorId,
+        AuthorResponse author,
         Set<Long> categoryIds,
         Set<Long> tagIds,
         Instant createdAt,

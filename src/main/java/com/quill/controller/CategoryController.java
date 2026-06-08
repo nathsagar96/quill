@@ -1,7 +1,7 @@
 package com.quill.controller;
 
-import com.quill.dto.CategoryRequest;
-import com.quill.dto.CategoryResponse;
+import com.quill.dto.request.CategoryRequest;
+import com.quill.dto.response.CategoryResponse;
 import com.quill.service.CategoryService;
 import jakarta.validation.Valid;
 import java.util.List;

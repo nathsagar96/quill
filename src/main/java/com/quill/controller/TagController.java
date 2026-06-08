@@ -1,7 +1,7 @@
 package com.quill.controller;
 
-import com.quill.dto.TagRequest;
-import com.quill.dto.TagResponse;
+import com.quill.dto.request.TagRequest;
+import com.quill.dto.response.TagResponse;
 import com.quill.service.TagService;
 import jakarta.validation.Valid;
 import java.util.List;

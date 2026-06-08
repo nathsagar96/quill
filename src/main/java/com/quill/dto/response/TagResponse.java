@@ -1,4 +1,4 @@
-package com.quill.dto;
+package com.quill.dto.response;
 
 import java.time.Instant;
 
