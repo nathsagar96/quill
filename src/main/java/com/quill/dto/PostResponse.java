@@ -1,5 +1,14 @@
 package com.quill.dto;
 
 import java.time.Instant;
+import java.util.Set;
 
-public record PostResponse(Long id, String title, String body, Long authorId, Instant createdAt, Instant updatedAt) {}
+public record PostResponse(
+        Long id,
+        String title,
+        String body,
+        Long authorId,
+        Set<Long> categoryIds,
+        Set<Long> tagIds,
+        Instant createdAt,
+        Instant updatedAt) {}

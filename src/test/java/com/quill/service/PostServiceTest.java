@@ -9,17 +9,24 @@ import static org.mockito.Mockito.when;
 
 import com.quill.dto.PostRequest;
 import com.quill.dto.PostResponse;
+import com.quill.exception.CategoryNotFoundException;
 import com.quill.exception.ForbiddenOperationException;
 import com.quill.exception.PostNotFoundException;
+import com.quill.exception.TagNotFoundException;
 import com.quill.exception.UserNotFoundException;
 import com.quill.mapper.PostMapper;
+import com.quill.model.Category;
 import com.quill.model.Post;
+import com.quill.model.Tag;
 import com.quill.model.User;
+import com.quill.repository.CategoryRepository;
 import com.quill.repository.PostRepository;
+import com.quill.repository.TagRepository;
 import com.quill.repository.UserRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -39,6 +46,8 @@ class PostServiceTest {
     private static final Long POST_ID = 10L;
     private static final Long MISSING_POST_ID = 99L;
     private static final Long AUTHOR_ID = 1L;
+    private static final Long CATEGORY_ID = 5L;
+    private static final Long TAG_ID = 7L;
     private static final String USERNAME = "alice";
 
     @Mock
@@ -46,6 +55,12 @@ class PostServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private CategoryRepository categoryRepository;
+
+    @Mock
+    private TagRepository tagRepository;
 
     @Mock
     private PostMapper postMapper;
@@ -57,24 +72,32 @@ class PostServiceTest {
     private Post post;
     private PostRequest request;
     private PostResponse response;
+    private Category category;
+    private Tag tag;
 
     @BeforeEach
     void setUp() {
         author = User.builder().id(AUTHOR_ID).username("alice").build();
+        category = Category.builder().id(CATEGORY_ID).name("Tech").build();
+        tag = Tag.builder().id(TAG_ID).name("java").build();
         post = Post.builder()
                 .id(POST_ID)
                 .title("Title")
                 .body("Body")
                 .author(author)
+                .categories(Set.of(category))
+                .tags(Set.of(tag))
                 .createdAt(Instant.parse("2024-01-01T00:00:00Z"))
                 .updatedAt(Instant.parse("2024-01-01T00:00:00Z"))
                 .build();
-        request = new PostRequest("New title", "New body");
+        request = new PostRequest("New title", "New body", Set.of(CATEGORY_ID), Set.of(TAG_ID));
         response = new PostResponse(
                 POST_ID,
                 "New title",
                 "New body",
                 AUTHOR_ID,
+                Set.of(CATEGORY_ID),
+                Set.of(TAG_ID),
                 Instant.parse("2024-01-01T00:00:00Z"),
                 Instant.parse("2024-01-01T00:00:00Z"));
     }
@@ -87,22 +110,15 @@ class PostServiceTest {
         @DisplayName("delegates to repository and maps each post via the mapper")
         void delegatesToRepositoryAndMaps() {
             var pageable = PageRequest.of(0, 10);
-            var other = Post.builder()
-                    .id(11L)
-                    .title("Other")
-                    .body("...")
-                    .author(author)
-                    .build();
-            var otherResponse = new PostResponse(11L, "Other", "...", AUTHOR_ID, null, null);
-            var page = new PageImpl<>(List.of(post, other), pageable, 2);
+            var otherResponse = new PostResponse(11L, "Other", "...", AUTHOR_ID, Set.of(1L), Set.of(), null, null);
+            var page = new PageImpl<>(List.of(post), pageable, 1);
             when(postRepository.findAll(pageable)).thenReturn(page);
             when(postMapper.toResponse(post)).thenReturn(response);
-            when(postMapper.toResponse(other)).thenReturn(otherResponse);
 
             Page<PostResponse> result = postService.findAllPosts(pageable);
 
-            assertThat(result.getContent()).containsExactly(response, otherResponse);
-            assertThat(result.getTotalElements()).isEqualTo(2);
+            assertThat(result.getContent()).containsExactly(response);
+            assertThat(result.getTotalElements()).isEqualTo(1);
             verify(postRepository).findAll(pageable);
         }
 
@@ -117,6 +133,44 @@ class PostServiceTest {
 
             assertThat(result.getContent()).isEmpty();
             verify(postMapper, never()).toResponse(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("findPostsByCategoryId")
+    class FindPostsByCategoryId {
+
+        @Test
+        @DisplayName("delegates to repository and maps")
+        void delegates() {
+            var pageable = PageRequest.of(0, 10);
+            var page = new PageImpl<>(List.of(post), pageable, 1);
+            when(postRepository.findByCategoriesId(CATEGORY_ID, pageable)).thenReturn(page);
+            when(postMapper.toResponse(post)).thenReturn(response);
+
+            Page<PostResponse> result = postService.findPostsByCategoryId(CATEGORY_ID, pageable);
+
+            assertThat(result.getContent()).containsExactly(response);
+            verify(postRepository).findByCategoriesId(CATEGORY_ID, pageable);
+        }
+    }
+
+    @Nested
+    @DisplayName("findPostsByTagId")
+    class FindPostsByTagId {
+
+        @Test
+        @DisplayName("delegates to repository and maps")
+        void delegates() {
+            var pageable = PageRequest.of(0, 10);
+            var page = new PageImpl<>(List.of(post), pageable, 1);
+            when(postRepository.findByTagsId(TAG_ID, pageable)).thenReturn(page);
+            when(postMapper.toResponse(post)).thenReturn(response);
+
+            Page<PostResponse> result = postService.findPostsByTagId(TAG_ID, pageable);
+
+            assertThat(result.getContent()).containsExactly(response);
+            verify(postRepository).findByTagsId(TAG_ID, pageable);
         }
     }
 
@@ -154,10 +208,13 @@ class PostServiceTest {
     class CreatePost {
 
         @Test
-        @DisplayName("resolves the author by username, persists, and returns the mapped response")
+        @DisplayName("resolves categories, tags, and author; persists; and returns the mapped response")
         void createsAndReturns() {
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
-            when(postMapper.toEntity(request, author)).thenReturn(post);
+            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
+            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
+            when(postMapper.toEntity(request, author, Set.of(category), Set.of(tag)))
+                    .thenReturn(post);
             when(postRepository.save(post)).thenReturn(post);
             when(postMapper.toResponse(post)).thenReturn(response);
 
@@ -165,8 +222,26 @@ class PostServiceTest {
 
             assertThat(result).isEqualTo(response);
             verify(userRepository).findByUsername(USERNAME);
-            verify(postMapper).toEntity(request, author);
+            verify(categoryRepository).findById(CATEGORY_ID);
+            verify(tagRepository).findById(TAG_ID);
+            verify(postMapper).toEntity(request, author, Set.of(category), Set.of(tag));
             verify(postRepository).save(post);
+        }
+
+        @Test
+        @DisplayName("creates with no tags when tagIds is empty")
+        void createsWithNoTags() {
+            var requestNoTags = new PostRequest("Title", "Body", Set.of(CATEGORY_ID), Set.of());
+            when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
+            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
+            when(postMapper.toEntity(requestNoTags, author, Set.of(category), Set.of()))
+                    .thenReturn(post);
+            when(postRepository.save(post)).thenReturn(post);
+            when(postMapper.toResponse(post)).thenReturn(response);
+
+            postService.createPost(requestNoTags, USERNAME);
+
+            verify(tagRepository, never()).findById(any());
         }
 
         @Test
@@ -179,6 +254,27 @@ class PostServiceTest {
 
             verify(postRepository, never()).save(any());
         }
+
+        @Test
+        @DisplayName("throws CategoryNotFoundException when a category does not exist")
+        void throwsWhenCategoryMissing() {
+            when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
+            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.empty());
+
+            assertThrows(CategoryNotFoundException.class, () -> postService.createPost(request, USERNAME));
+            verify(postRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("throws TagNotFoundException when a tag does not exist")
+        void throwsWhenTagMissing() {
+            when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
+            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
+            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.empty());
+
+            assertThrows(TagNotFoundException.class, () -> postService.createPost(request, USERNAME));
+            verify(postRepository, never()).save(any());
+        }
     }
 
     @Nested
@@ -189,6 +285,8 @@ class PostServiceTest {
         @DisplayName("allows the owner to update and returns the mapped response")
         void ownerCanUpdate() {
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(post));
+            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
+            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
             when(postMapper.toResponse(post)).thenReturn(response);
 
             PostResponse result = postService.updatePost(POST_ID, request, USERNAME, false);
@@ -196,12 +294,16 @@ class PostServiceTest {
             assertThat(result).isEqualTo(response);
             assertThat(post.getTitle()).isEqualTo(request.title());
             assertThat(post.getBody()).isEqualTo(request.body());
+            assertThat(post.getCategories()).containsExactly(category);
+            assertThat(post.getTags()).containsExactly(tag);
         }
 
         @Test
         @DisplayName("allows an admin to update any post")
         void adminCanUpdate() {
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(post));
+            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
+            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
             when(postMapper.toResponse(post)).thenReturn(response);
 
             PostResponse result = postService.updatePost(POST_ID, request, "other", true);

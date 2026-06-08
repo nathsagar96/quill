@@ -14,9 +14,16 @@ public class TestSecurityConfig {
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/*")
+                .authorizeHttpRequests(auth -> auth.requestMatchers(
+                                HttpMethod.GET,
+                                "/api/posts",
+                                "/api/posts/*",
+                                "/api/categories",
+                                "/api/categories/*",
+                                "/api/tags",
+                                "/api/tags/*")
                         .permitAll()
-                        .requestMatchers(HttpMethod.DELETE, "/api/posts/**")
+                        .requestMatchers(HttpMethod.DELETE, "/api/posts/**", "/api/categories/**", "/api/tags/**")
                         .hasRole("ADMIN")
                         .anyRequest()
                         .authenticated())

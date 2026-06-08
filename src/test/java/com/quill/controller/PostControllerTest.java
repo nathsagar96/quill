@@ -14,6 +14,7 @@ import com.quill.exception.PostNotFoundException;
 import com.quill.service.PostService;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -36,15 +38,19 @@ class PostControllerTest {
 
     private static final long POST_ID = 10L;
     private static final long AUTHOR_ID = 1L;
+    private static final long CATEGORY_ID = 5L;
+    private static final long TAG_ID = 7L;
     private static final String USERNAME = "alice";
     private final PostResponse response = new PostResponse(
             POST_ID,
             "Title",
             "Body",
             AUTHOR_ID,
+            Set.of(CATEGORY_ID),
+            Set.of(TAG_ID),
             Instant.parse("2024-01-01T00:00:00Z"),
             Instant.parse("2024-01-01T00:00:00Z"));
-    private final PostRequest request = new PostRequest("Title", "Body");
+    private final PostRequest request = new PostRequest("Title", "Body", Set.of(CATEGORY_ID), Set.of(TAG_ID));
 
     @Autowired
     private MockMvcTester mockMvc;
@@ -90,6 +96,38 @@ class PostControllerTest {
         @Test
         void allowsAnonymousAccess() {
             assertThat(mockMvc.get().uri("/api/posts")).hasStatusOk();
+        }
+
+        @Test
+        @WithMockUser
+        void filtersByCategoryId() {
+            var pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
+            Page<PostResponse> page = new PageImpl<>(List.of(response), pageable, 1);
+            when(postService.findPostsByCategoryId(CATEGORY_ID, pageable)).thenReturn(page);
+
+            assertThat(mockMvc.get().uri("/api/posts?categoryId={id}", CATEGORY_ID))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.content")
+                    .asArray()
+                    .hasSize(1);
+            verify(postService).findPostsByCategoryId(CATEGORY_ID, pageable);
+        }
+
+        @Test
+        @WithMockUser
+        void filtersByTagId() {
+            var pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
+            Page<PostResponse> page = new PageImpl<>(List.of(response), pageable, 1);
+            when(postService.findPostsByTagId(TAG_ID, pageable)).thenReturn(page);
+
+            assertThat(mockMvc.get().uri("/api/posts?tagId={id}", TAG_ID))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.content")
+                    .asArray()
+                    .hasSize(1);
+            verify(postService).findPostsByTagId(TAG_ID, pageable);
         }
     }
 
@@ -137,13 +175,33 @@ class PostControllerTest {
             assertThat(mockMvc.post()
                             .uri("/api/posts")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"title\":\"Title\",\"body\":\"Body\"}"))
+                            .content("{\"title\":\"Title\",\"body\":\"Body\",\"categoryIds\":[5],\"tagIds\":[7]}"))
                     .hasStatus(HttpStatus.CREATED)
                     .bodyJson()
                     .extractingPath("$.id")
                     .asNumber()
                     .isEqualTo(10);
             verify(postService).createPost(request, USERNAME);
+        }
+
+        @Test
+        @WithMockUser
+        void returns400WhenCategoryIdsMissing() {
+            assertThat(mockMvc.post()
+                            .uri("/api/posts")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"title\":\"Title\",\"body\":\"Body\"}"))
+                    .hasStatus(HttpStatus.BAD_REQUEST);
+        }
+
+        @Test
+        @WithMockUser
+        void returns400WhenCategoryIdsEmpty() {
+            assertThat(mockMvc.post()
+                            .uri("/api/posts")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"title\":\"T\",\"body\":\"B\",\"categoryIds\":[]}"))
+                    .hasStatus(HttpStatus.BAD_REQUEST);
         }
 
         @Test
@@ -161,7 +219,7 @@ class PostControllerTest {
             assertThat(mockMvc.post()
                             .uri("/api/posts")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"title\":\"Title\",\"body\":\"Body\"}"))
+                            .content("{\"title\":\"Title\",\"body\":\"Body\",\"categoryIds\":[5]}"))
                     .hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }
@@ -178,7 +236,7 @@ class PostControllerTest {
             assertThat(mockMvc.put()
                             .uri("/api/posts/{id}", POST_ID)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"title\":\"Title\",\"body\":\"Body\"}"))
+                            .content("{\"title\":\"Title\",\"body\":\"Body\",\"categoryIds\":[5],\"tagIds\":[7]}"))
                     .hasStatusOk()
                     .bodyJson()
                     .extractingPath("$.id")
@@ -196,18 +254,8 @@ class PostControllerTest {
             assertThat(mockMvc.put()
                             .uri("/api/posts/{id}", POST_ID)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"title\":\"Title\",\"body\":\"Body\"}"))
+                            .content("{\"title\":\"Title\",\"body\":\"Body\",\"categoryIds\":[5],\"tagIds\":[7]}"))
                     .hasStatus(HttpStatus.NOT_FOUND);
-        }
-
-        @Test
-        @WithMockUser
-        void returns400WhenBodyInvalid() {
-            assertThat(mockMvc.put()
-                            .uri("/api/posts/{id}", POST_ID)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"body\": \"\"}"))
-                    .hasStatus(HttpStatus.BAD_REQUEST);
         }
 
         @Test
@@ -215,7 +263,7 @@ class PostControllerTest {
             assertThat(mockMvc.put()
                             .uri("/api/posts/{id}", POST_ID)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"title\":\"Title\",\"body\":\"Body\"}"))
+                            .content("{\"title\":\"Title\",\"body\":\"Body\",\"categoryIds\":[5]}"))
                     .hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }

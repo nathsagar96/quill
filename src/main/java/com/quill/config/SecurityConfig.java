@@ -39,9 +39,16 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**")
                         .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/*")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/posts",
+                                "/api/posts/*",
+                                "/api/categories",
+                                "/api/categories/*",
+                                "/api/tags",
+                                "/api/tags/*")
                         .permitAll()
-                        .requestMatchers(HttpMethod.DELETE, "/api/posts/**")
+                        .requestMatchers(HttpMethod.DELETE, "/api/posts/**", "/api/categories/**", "/api/tags/**")
                         .hasRole("ADMIN")
                         .anyRequest()
                         .authenticated())

@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -56,7 +57,7 @@ class CommentControllerTest {
         @Test
         @WithMockUser
         void returnsPageOfComments() {
-            var pageable = PageRequest.of(0, 20);
+            var pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
             Page<CommentResponse> page = new PageImpl<>(List.of(response), pageable, 1);
             when(commentService.findAllCommentsByPostId(POST_ID, pageable)).thenReturn(page);
 
@@ -72,7 +73,7 @@ class CommentControllerTest {
         @Test
         @WithMockUser
         void returnsEmptyPage() {
-            var pageable = PageRequest.of(0, 20);
+            var pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
             Page<CommentResponse> empty = new PageImpl<>(List.of(), pageable, 0);
             when(commentService.findAllCommentsByPostId(POST_ID, pageable)).thenReturn(empty);
 

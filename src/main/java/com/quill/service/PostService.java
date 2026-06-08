@@ -2,14 +2,22 @@ package com.quill.service;
 
 import com.quill.dto.PostRequest;
 import com.quill.dto.PostResponse;
+import com.quill.exception.CategoryNotFoundException;
 import com.quill.exception.ForbiddenOperationException;
 import com.quill.exception.PostNotFoundException;
+import com.quill.exception.TagNotFoundException;
 import com.quill.exception.UserNotFoundException;
 import com.quill.mapper.PostMapper;
+import com.quill.model.Category;
 import com.quill.model.Post;
+import com.quill.model.Tag;
 import com.quill.model.User;
+import com.quill.repository.CategoryRepository;
 import com.quill.repository.PostRepository;
+import com.quill.repository.TagRepository;
 import com.quill.repository.UserRepository;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -25,6 +33,8 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository;
+    private final TagRepository tagRepository;
     private final PostMapper postMapper;
 
     public Page<PostResponse> findAllPosts(Pageable pageable) {
@@ -36,6 +46,16 @@ public class PostService {
         return postRepository.findAll(pageable).map(postMapper::toResponse);
     }
 
+    public Page<PostResponse> findPostsByCategoryId(Long categoryId, Pageable pageable) {
+        log.debug("Fetching posts by category id={}, page={}", categoryId, pageable.getPageNumber());
+        return postRepository.findByCategoriesId(categoryId, pageable).map(postMapper::toResponse);
+    }
+
+    public Page<PostResponse> findPostsByTagId(Long tagId, Pageable pageable) {
+        log.debug("Fetching posts by tag id={}, page={}", tagId, pageable.getPageNumber());
+        return postRepository.findByTagsId(tagId, pageable).map(postMapper::toResponse);
+    }
+
     public PostResponse findPostById(Long id) {
         log.debug("Fetching post with id={}", id);
         return postRepository.findById(id).map(postMapper::toResponse).orElseThrow(() -> new PostNotFoundException(id));
@@ -45,7 +65,9 @@ public class PostService {
     public PostResponse createPost(PostRequest request, String username) {
         log.info("Creating post: title='{}', username='{}'", request.title(), username);
         User author = findUserByUsername(username);
-        Post entity = postMapper.toEntity(request, author);
+        Set<Category> categories = resolveCategories(request.categoryIds());
+        Set<Tag> tags = resolveTags(request.tagIds());
+        Post entity = postMapper.toEntity(request, author, categories, tags);
         Post saved = postRepository.save(entity);
         log.info("Created post with id={}", saved.getId());
         return postMapper.toResponse(saved);
@@ -61,6 +83,8 @@ public class PostService {
         }
         existing.setTitle(request.title());
         existing.setBody(request.body());
+        existing.setCategories(resolveCategories(request.categoryIds()));
+        existing.setTags(resolveTags(request.tagIds()));
         log.info("Updated post with id={}", id);
         return postMapper.toResponse(existing);
     }
@@ -79,5 +103,20 @@ public class PostService {
         return userRepository
                 .findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+    }
+
+    private Set<Category> resolveCategories(Set<Long> categoryIds) {
+        return categoryIds.stream()
+                .map(cid -> categoryRepository.findById(cid).orElseThrow(() -> new CategoryNotFoundException(cid)))
+                .collect(Collectors.toSet());
+    }
+
+    private Set<Tag> resolveTags(Set<Long> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return Set.of();
+        }
+        return tagIds.stream()
+                .map(tid -> tagRepository.findById(tid).orElseThrow(() -> new TagNotFoundException(tid)))
+                .collect(Collectors.toSet());
     }
 }
