@@ -1,6 +1,9 @@
 spring:
   application:
     name: quill
+  mvc:
+    problemdetails:
+      enabled: true
   jpa:
     hibernate:
       ddl-auto: validate
