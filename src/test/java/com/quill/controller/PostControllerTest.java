@@ -45,12 +45,13 @@ class PostControllerTest {
             POST_ID,
             "Title",
             "Body",
+            null,
             AUTHOR_ID,
             Set.of(CATEGORY_ID),
             Set.of(TAG_ID),
             Instant.parse("2024-01-01T00:00:00Z"),
             Instant.parse("2024-01-01T00:00:00Z"));
-    private final PostRequest request = new PostRequest("Title", "Body", Set.of(CATEGORY_ID), Set.of(TAG_ID));
+    private final PostRequest request = new PostRequest("Title", "Body", null, Set.of(CATEGORY_ID), Set.of(TAG_ID));
 
     @Autowired
     private MockMvcTester mockMvc;

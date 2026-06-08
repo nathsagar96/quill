@@ -68,6 +68,9 @@ public class PostService {
         Set<Category> categories = resolveCategories(request.categoryIds());
         Set<Tag> tags = resolveTags(request.tagIds());
         Post entity = postMapper.toEntity(request, author, categories, tags);
+        if (entity.getExcerpt() == null || entity.getExcerpt().isBlank()) {
+            entity.setExcerpt(generateExcerpt(entity.getBody()));
+        }
         Post saved = postRepository.save(entity);
         log.info("Created post with id={}", saved.getId());
         return postMapper.toResponse(saved);
@@ -85,6 +88,11 @@ public class PostService {
         existing.setBody(request.body());
         existing.setCategories(resolveCategories(request.categoryIds()));
         existing.setTags(resolveTags(request.tagIds()));
+        if (request.excerpt() == null || request.excerpt().isBlank()) {
+            existing.setExcerpt(generateExcerpt(existing.getBody()));
+        } else {
+            existing.setExcerpt(request.excerpt());
+        }
         log.info("Updated post with id={}", id);
         return postMapper.toResponse(existing);
     }
@@ -109,6 +117,21 @@ public class PostService {
         return categoryIds.stream()
                 .map(cid -> categoryRepository.findById(cid).orElseThrow(() -> new CategoryNotFoundException(cid)))
                 .collect(Collectors.toSet());
+    }
+
+    private String generateExcerpt(String body) {
+        if (body == null || body.isBlank()) {
+            return null;
+        }
+        String cleaned = body.strip();
+        if (cleaned.length() <= 150) {
+            return cleaned;
+        }
+        int lastSpace = cleaned.lastIndexOf(' ', 150);
+        if (lastSpace == -1) {
+            return cleaned.substring(0, 150) + "...";
+        }
+        return cleaned.substring(0, lastSpace) + "...";
     }
 
     private Set<Tag> resolveTags(Set<Long> tagIds) {

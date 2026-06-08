@@ -62,7 +62,7 @@ class PostMapperTest {
         @Test
         @DisplayName("sets all fields from the request and supplied entities")
         void setsAllFields() {
-            PostRequest request = new PostRequest("Title", "Body", Set.of(1L), Set.of(2L));
+            PostRequest request = new PostRequest("Title", "Body", null, Set.of(1L), Set.of(2L));
             User author = User.builder().id(1L).build();
             var cat = Category.builder().id(1L).name("Tech").build();
             var tag = Tag.builder().id(2L).name("java").build();
@@ -79,7 +79,7 @@ class PostMapperTest {
         @Test
         @DisplayName("leaves id, audit fields, and comments to JPA")
         void doesNotSetPersistedFields() {
-            PostRequest request = new PostRequest("Title", "Body", Set.of(1L), Set.of());
+            PostRequest request = new PostRequest("Title", "Body", null, Set.of(1L), Set.of());
             User author = User.builder().id(1L).build();
             var cat = Category.builder().id(1L).build();
 

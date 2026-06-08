@@ -18,6 +18,7 @@ public class PostMapper {
                 entity.getId(),
                 entity.getTitle(),
                 entity.getBody(),
+                entity.getExcerpt(),
                 entity.getAuthor().getId(),
                 entity.getCategories().stream().map(Category::getId).collect(Collectors.toSet()),
                 entity.getTags().stream().map(Tag::getId).collect(Collectors.toSet()),
@@ -29,6 +30,7 @@ public class PostMapper {
         return Post.builder()
                 .title(request.title())
                 .body(request.body())
+                .excerpt(request.excerpt())
                 .author(author)
                 .categories(categories)
                 .tags(tags)

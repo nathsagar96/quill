@@ -7,6 +7,7 @@ public record PostResponse(
         Long id,
         String title,
         String body,
+        String excerpt,
         Long authorId,
         Set<Long> categoryIds,
         Set<Long> tagIds,

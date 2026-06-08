@@ -90,11 +90,12 @@ class PostServiceTest {
                 .createdAt(Instant.parse("2024-01-01T00:00:00Z"))
                 .updatedAt(Instant.parse("2024-01-01T00:00:00Z"))
                 .build();
-        request = new PostRequest("New title", "New body", Set.of(CATEGORY_ID), Set.of(TAG_ID));
+        request = new PostRequest("New title", "New body", null, Set.of(CATEGORY_ID), Set.of(TAG_ID));
         response = new PostResponse(
                 POST_ID,
                 "New title",
                 "New body",
+                null,
                 AUTHOR_ID,
                 Set.of(CATEGORY_ID),
                 Set.of(TAG_ID),
@@ -110,7 +111,8 @@ class PostServiceTest {
         @DisplayName("delegates to repository and maps each post via the mapper")
         void delegatesToRepositoryAndMaps() {
             var pageable = PageRequest.of(0, 10);
-            var otherResponse = new PostResponse(11L, "Other", "...", AUTHOR_ID, Set.of(1L), Set.of(), null, null);
+            var otherResponse =
+                    new PostResponse(11L, "Other", "...", null, AUTHOR_ID, Set.of(1L), Set.of(), null, null);
             var page = new PageImpl<>(List.of(post), pageable, 1);
             when(postRepository.findAll(pageable)).thenReturn(page);
             when(postMapper.toResponse(post)).thenReturn(response);
@@ -231,7 +233,7 @@ class PostServiceTest {
         @Test
         @DisplayName("creates with no tags when tagIds is empty")
         void createsWithNoTags() {
-            var requestNoTags = new PostRequest("Title", "Body", Set.of(CATEGORY_ID), Set.of());
+            var requestNoTags = new PostRequest("Title", "Body", null, Set.of(CATEGORY_ID), Set.of());
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
             when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
             when(postMapper.toEntity(requestNoTags, author, Set.of(category), Set.of()))
