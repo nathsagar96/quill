@@ -130,6 +130,9 @@ public class PostService {
     }
 
     private Set<Category> resolveCategories(Set<Long> categoryIds) {
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            return Set.of();
+        }
         return categoryIds.stream()
                 .map(cid -> categoryRepository.findById(cid).orElseThrow(() -> new CategoryNotFoundException(cid)))
                 .collect(Collectors.toSet());
@@ -140,12 +143,12 @@ public class PostService {
             return null;
         }
         String cleaned = body.strip();
-        if (cleaned.length() <= 150) {
+        if (cleaned.length() <= 250) {
             return cleaned;
         }
-        int lastSpace = cleaned.lastIndexOf(' ', 150);
+        int lastSpace = cleaned.lastIndexOf(' ', 250);
         if (lastSpace == -1) {
-            return cleaned.substring(0, 150) + "...";
+            return cleaned.substring(0, 250) + "...";
         }
         return cleaned.substring(0, lastSpace) + "...";
     }

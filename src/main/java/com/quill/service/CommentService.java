@@ -2,6 +2,8 @@ package com.quill.service;
 
 import com.quill.dto.request.CommentRequest;
 import com.quill.dto.response.CommentResponse;
+import com.quill.exception.CommentNotFoundException;
+import com.quill.exception.ForbiddenOperationException;
 import com.quill.exception.PostNotFoundException;
 import com.quill.exception.UserNotFoundException;
 import com.quill.mapper.CommentMapper;
@@ -35,6 +37,9 @@ public class CommentService {
                 postId,
                 pageable.getPageNumber(),
                 pageable.getPageSize());
+        if (!postRepository.existsById(postId)) {
+            throw new PostNotFoundException(postId);
+        }
         return commentRepository.findByPostId(postId, pageable).map(commentMapper::toResponse);
     }
 
@@ -47,6 +52,30 @@ public class CommentService {
         Comment saved = commentRepository.save(entity);
         log.info("Created comment with id={}", saved.getId());
         return commentMapper.toResponse(saved);
+    }
+
+    @Transactional
+    public CommentResponse updateComment(Long postId, Long id, CommentRequest request, String username) {
+        log.info("Updating comment id={} on post id={} by user '{}'", id, postId, username);
+        Comment comment = findCommentByIdAndPostId(id, postId);
+        if (!comment.getAuthor().getUsername().equals(username)) {
+            throw new ForbiddenOperationException("User '%s' is not the owner of comment %d".formatted(username, id));
+        }
+        comment.setBody(request.body());
+        log.info("Updated comment id={}", id);
+        return commentMapper.toResponse(comment);
+    }
+
+    @Transactional
+    public void deleteComment(Long postId, Long id) {
+        log.info("Deleting comment id={} on post id={}", id, postId);
+        Comment comment = findCommentByIdAndPostId(id, postId);
+        commentRepository.delete(comment);
+        log.info("Deleted comment id={}", id);
+    }
+
+    private Comment findCommentByIdAndPostId(Long id, Long postId) {
+        return commentRepository.findByIdAndPostId(id, postId).orElseThrow(() -> new CommentNotFoundException(id));
     }
 
     private Post findPostById(Long id) {

@@ -5,8 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.quill.TestcontainersConfiguration;
 import com.quill.config.JpaConfig;
+import com.quill.model.Category;
 import com.quill.model.Comment;
 import com.quill.model.Post;
+import com.quill.model.Tag;
 import com.quill.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,6 +34,12 @@ class PostRepositoryTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private TagRepository tagRepository;
 
     private User author;
 
@@ -229,6 +237,62 @@ class PostRepositoryTest {
         Post post = Post.builder().title("No slug").body("Body").author(author).build();
 
         assertThatThrownBy(() -> postRepository.saveAndFlush(post)).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("should find posts by category id")
+    void shouldFindPostsByCategoryId() {
+        Category category = categoryRepository.saveAndFlush(
+                Category.builder().name("Tech").slug("tech").build());
+        Post post = Post.builder()
+                .title("Tech Post")
+                .body("Body")
+                .slug("tech-post")
+                .author(author)
+                .build();
+        post.getCategories().add(category);
+        postRepository.saveAndFlush(post);
+
+        Page<Post> result = postRepository.findByCategoriesId(category.getId(), PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().getFirst().getTitle()).isEqualTo("Tech Post");
+    }
+
+    @Test
+    @DisplayName("should return empty page when no posts match category id")
+    void shouldReturnEmptyWhenNoPostsMatchCategory() {
+        Page<Post> result = postRepository.findByCategoriesId(999L, PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("should find posts by tag id")
+    void shouldFindPostsByTagId() {
+        Tag tag = tagRepository.saveAndFlush(
+                Tag.builder().name("java").slug("java").build());
+        Post post = Post.builder()
+                .title("Java Post")
+                .body("Body")
+                .slug("java-post")
+                .author(author)
+                .build();
+        post.getTags().add(tag);
+        postRepository.saveAndFlush(post);
+
+        Page<Post> result = postRepository.findByTagsId(tag.getId(), PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().getFirst().getTitle()).isEqualTo("Java Post");
+    }
+
+    @Test
+    @DisplayName("should return empty page when no posts match tag id")
+    void shouldReturnEmptyWhenNoPostsMatchTag() {
+        Page<Post> result = postRepository.findByTagsId(999L, PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).isEmpty();
     }
 
     @Test

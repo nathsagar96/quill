@@ -118,17 +118,6 @@ class PostServiceTest {
         @DisplayName("delegates to repository and maps each post via the mapper")
         void delegatesToRepositoryAndMaps() {
             var pageable = PageRequest.of(0, 10);
-            var otherResponse = new PostResponse(
-                    11L,
-                    "Other",
-                    "...",
-                    null,
-                    "other",
-                    new AuthorResponse(AUTHOR_ID, null, null, null, null),
-                    Set.of(1L),
-                    Set.of(),
-                    null,
-                    null);
             var page = new PageImpl<>(List.of(post), pageable, 1);
             when(postRepository.findAll(pageable)).thenReturn(page);
             when(postMapper.toResponse(post)).thenReturn(response);

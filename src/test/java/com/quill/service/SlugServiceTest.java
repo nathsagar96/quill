@@ -1,6 +1,7 @@
 package com.quill.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -43,9 +44,11 @@ class SlugServiceTest {
         }
 
         @Test
-        @DisplayName("returns empty string for null input")
-        void returnsEmptyForNull() {
-            assertThat(slugService.generateSlug(null)).isEmpty();
+        @DisplayName("throws NullPointerException for null input")
+        void throwsForNull() {
+            assertThatThrownBy(() -> slugService.generateSlug(null))
+                    .isInstanceOf(NullPointerException.class)
+                    .hasMessage("source must not be null");
         }
 
         @Test
@@ -62,7 +65,7 @@ class SlugServiceTest {
         @Test
         @DisplayName("returns the base slug when it does not exist")
         void returnsBaseWhenUnique() {
-            String result = slugService.toUniqueSlug("Hello World", "fallback", s -> false);
+            String result = slugService.toUniqueSlug("Hello World", "fallback", _ -> false);
             assertThat(result).isEqualTo("hello-world");
         }
 
@@ -70,7 +73,7 @@ class SlugServiceTest {
         @DisplayName("appends a counter suffix when the slug already exists")
         void appendsCounterWhenTaken() {
             AtomicInteger call = new AtomicInteger(0);
-            Predicate<String> exists = s -> {
+            Predicate<String> exists = _ -> {
                 int n = call.getAndIncrement();
                 return n < 2;
             };
@@ -81,14 +84,14 @@ class SlugServiceTest {
         @Test
         @DisplayName("uses the fallback when the source is blank")
         void usesFallbackForBlankSource() {
-            String result = slugService.toUniqueSlug("", "fallback", s -> false);
+            String result = slugService.toUniqueSlug("", "fallback", _ -> false);
             assertThat(result).isEqualTo("fallback");
         }
 
         @Test
         @DisplayName("uses the fallback when the source is null")
         void usesFallbackForNullSource() {
-            String result = slugService.toUniqueSlug(null, "fallback", s -> false);
+            String result = slugService.toUniqueSlug(null, "fallback", _ -> false);
             assertThat(result).isEqualTo("fallback");
         }
 
@@ -96,7 +99,7 @@ class SlugServiceTest {
         @DisplayName("appends counter to fallback when fallback slug is taken")
         void fallbackWithCounter() {
             AtomicInteger call = new AtomicInteger(0);
-            Predicate<String> exists = s -> call.getAndIncrement() == 0;
+            Predicate<String> exists = _ -> call.getAndIncrement() == 0;
             String result = slugService.toUniqueSlug("", "fallback", exists);
             assertThat(result).isEqualTo("fallback-1");
         }
@@ -109,7 +112,7 @@ class SlugServiceTest {
         @Test
         @DisplayName("returns the provided slug when it is non-blank and unique")
         void returnsProvidedSlugWhenUnique() {
-            String result = slugService.resolveSlug("custom-slug", "title", s -> false);
+            String result = slugService.resolveSlug("custom-slug", "title", _ -> false);
             assertThat(result).isEqualTo("custom-slug");
         }
 
@@ -125,14 +128,14 @@ class SlugServiceTest {
         @Test
         @DisplayName("falls back to toUniqueSlug when no slug is provided")
         void fallsBackWhenSlugNull() {
-            String result = slugService.resolveSlug(null, "Hello World", s -> false);
+            String result = slugService.resolveSlug(null, "Hello World", _ -> false);
             assertThat(result).isEqualTo("hello-world");
         }
 
         @Test
         @DisplayName("falls back to toUniqueSlug when provided slug is blank")
         void fallsBackWhenSlugBlank() {
-            String result = slugService.resolveSlug("  ", "Hello World", s -> false);
+            String result = slugService.resolveSlug("  ", "Hello World", _ -> false);
             assertThat(result).isEqualTo("hello-world");
         }
     }

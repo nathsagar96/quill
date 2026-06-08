@@ -4,10 +4,12 @@ import com.quill.dto.request.TagRequest;
 import com.quill.dto.response.TagResponse;
 import com.quill.service.TagService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/tags")
 @RequiredArgsConstructor
+@Validated
 public class TagController {
 
     private final TagService tagService;
@@ -30,7 +33,7 @@ public class TagController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TagResponse> findTagById(@PathVariable Long id) {
+    public ResponseEntity<TagResponse> findTagById(@Min(1) @PathVariable Long id) {
         return ResponseEntity.ok(tagService.findTagById(id));
     }
 
@@ -40,12 +43,13 @@ public class TagController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TagResponse> updateTag(@PathVariable Long id, @Valid @RequestBody TagRequest request) {
+    public ResponseEntity<TagResponse> updateTag(
+            @Min(1) @PathVariable Long id, @Valid @RequestBody TagRequest request) {
         return ResponseEntity.ok(tagService.updateTag(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTag(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteTag(@Min(1) @PathVariable Long id) {
         tagService.deleteTag(id);
         return ResponseEntity.noContent().build();
     }

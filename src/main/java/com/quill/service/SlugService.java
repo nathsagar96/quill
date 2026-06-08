@@ -1,5 +1,6 @@
 package com.quill.service;
 
+import java.util.Objects;
 import java.util.function.Predicate;
 import org.springframework.stereotype.Component;
 
@@ -7,7 +8,8 @@ import org.springframework.stereotype.Component;
 public class SlugService {
 
     public String generateSlug(String source) {
-        if (source == null || source.isBlank()) {
+        Objects.requireNonNull(source, "source must not be null");
+        if (source.isBlank()) {
             return "";
         }
         return source.toLowerCase()
@@ -18,6 +20,9 @@ public class SlugService {
     }
 
     public String toUniqueSlug(String source, String fallback, Predicate<String> existsChecker) {
+        if (source == null) {
+            source = fallback;
+        }
         String base = generateSlug(source);
         if (base.isBlank()) {
             base = fallback;

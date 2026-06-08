@@ -227,27 +227,6 @@ class PostControllerTest {
 
         @Test
         @WithMockUser
-        void returns400WhenCategoryIdsMissing() {
-            assertThat(mockMvc.post()
-                            .uri("/api/posts")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(jsonMapper.writeValueAsString(new PostRequest("Title", "Body", null, null, null))))
-                    .hasStatus(HttpStatus.BAD_REQUEST);
-        }
-
-        @Test
-        @WithMockUser
-        void returns400WhenCategoryIdsEmpty() {
-            assertThat(mockMvc.post()
-                            .uri("/api/posts")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(
-                                    jsonMapper.writeValueAsString(new PostRequest("T", "B", null, Set.of(), Set.of()))))
-                    .hasStatus(HttpStatus.BAD_REQUEST);
-        }
-
-        @Test
-        @WithMockUser
         void returns400WhenBodyMissing() {
             assertThat(mockMvc.post()
                             .uri("/api/posts")

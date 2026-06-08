@@ -10,6 +10,7 @@ import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,13 +21,22 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final PathPatternRequestMatcher SKIP_MATCHER = PathPatternRequestMatcher.pathPattern("/api/auth/**");
+    private static final PathPatternRequestMatcher SKIP_AUTH = PathPatternRequestMatcher.pathPattern("/api/auth/**");
+    private static final PathPatternRequestMatcher SKIP_GET_POSTS =
+            PathPatternRequestMatcher.pathPattern(HttpMethod.GET, "/api/posts/**");
+    private static final PathPatternRequestMatcher SKIP_GET_CATEGORIES =
+            PathPatternRequestMatcher.pathPattern(HttpMethod.GET, "/api/categories/**");
+    private static final PathPatternRequestMatcher SKIP_GET_TAGS =
+            PathPatternRequestMatcher.pathPattern(HttpMethod.GET, "/api/tags/**");
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
     @Override
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
-        return SKIP_MATCHER.matches(request);
+        return SKIP_AUTH.matches(request)
+                || SKIP_GET_POSTS.matches(request)
+                || SKIP_GET_CATEGORIES.matches(request)
+                || SKIP_GET_TAGS.matches(request);
     }
 
     @Override

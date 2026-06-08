@@ -4,6 +4,7 @@ import com.quill.dto.request.PostRequest;
 import com.quill.dto.response.PostResponse;
 import com.quill.service.PostService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +13,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/posts")
 @RequiredArgsConstructor
+@Validated
 public class PostController {
 
     private final PostService postService;
@@ -44,7 +47,7 @@ public class PostController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PostResponse> findPostById(@PathVariable Long id) {
+    public ResponseEntity<PostResponse> findPostById(@Min(1) @PathVariable Long id) {
         return ResponseEntity.ok(postService.findPostById(id));
     }
 
@@ -62,7 +65,7 @@ public class PostController {
 
     @PutMapping("/{id}")
     public ResponseEntity<PostResponse> updatePost(
-            @PathVariable Long id, @Valid @RequestBody PostRequest request, Authentication authentication) {
+            @Min(1) @PathVariable Long id, @Valid @RequestBody PostRequest request, Authentication authentication) {
         String username = authentication.getName();
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
@@ -71,7 +74,7 @@ public class PostController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePost(@PathVariable Long id) {
+    public ResponseEntity<Void> deletePost(@Min(1) @PathVariable Long id) {
         postService.deletePost(id);
         return ResponseEntity.noContent().build();
     }

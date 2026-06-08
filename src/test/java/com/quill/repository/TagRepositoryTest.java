@@ -29,9 +29,9 @@ class TagRepositoryTest {
         Tag saved = tagRepository.saveAndFlush(tag);
 
         assertThat(saved.getId()).isNotNull();
-        assertThat(tagRepository.findById(saved.getId())).isPresent().get().satisfies(found -> {
-            assertThat(found.getName()).isEqualTo("java");
-        });
+        assertThat(tagRepository.findById(saved.getId())).isPresent().get().satisfies(found -> assertThat(
+                        found.getName())
+                .isEqualTo("java"));
     }
 
     @Test

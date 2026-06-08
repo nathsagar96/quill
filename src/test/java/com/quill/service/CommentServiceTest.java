@@ -10,6 +10,8 @@ import static org.mockito.Mockito.when;
 import com.quill.dto.request.CommentRequest;
 import com.quill.dto.response.AuthorResponse;
 import com.quill.dto.response.CommentResponse;
+import com.quill.exception.CommentNotFoundException;
+import com.quill.exception.ForbiddenOperationException;
 import com.quill.exception.PostNotFoundException;
 import com.quill.exception.UserNotFoundException;
 import com.quill.mapper.CommentMapper;
@@ -116,6 +118,7 @@ class CommentServiceTest {
                     Instant.parse("2024-01-01T01:00:00Z"),
                     Instant.parse("2024-01-01T01:00:00Z"));
             var page = new PageImpl<>(List.of(comment, other), pageable, 2);
+            when(postRepository.existsById(POST_ID)).thenReturn(true);
             when(commentRepository.findByPostId(POST_ID, pageable)).thenReturn(page);
             when(commentMapper.toResponse(comment)).thenReturn(response);
             when(commentMapper.toResponse(other)).thenReturn(otherResponse);
@@ -124,6 +127,7 @@ class CommentServiceTest {
 
             assertThat(result.getContent()).containsExactly(response, otherResponse);
             assertThat(result.getTotalElements()).isEqualTo(2);
+            verify(postRepository).existsById(POST_ID);
             verify(commentRepository).findByPostId(POST_ID, pageable);
         }
 
@@ -132,12 +136,28 @@ class CommentServiceTest {
         void returnsEmptyPage() {
             var pageable = PageRequest.of(0, 20);
             var empty = new PageImpl<>(List.<Comment>of(), pageable, 0);
+            when(postRepository.existsById(POST_ID)).thenReturn(true);
             when(commentRepository.findByPostId(POST_ID, pageable)).thenReturn(empty);
 
             Page<CommentResponse> result = commentService.findAllCommentsByPostId(POST_ID, pageable);
 
             assertThat(result.getContent()).isEmpty();
+            verify(postRepository).existsById(POST_ID);
             verify(commentMapper, never()).toResponse(any());
+        }
+
+        @Test
+        @DisplayName("throws PostNotFoundException when the post does not exist")
+        void throwsWhenPostMissing() {
+            var pageable = PageRequest.of(0, 20);
+            when(postRepository.existsById(MISSING_POST_ID)).thenReturn(false);
+
+            var thrown = assertThrows(
+                    PostNotFoundException.class,
+                    () -> commentService.findAllCommentsByPostId(MISSING_POST_ID, pageable));
+            assertThat(thrown).hasMessageContaining(String.valueOf(MISSING_POST_ID));
+
+            verify(commentRepository, never()).findByPostId(any(), any());
         }
     }
 
@@ -188,6 +208,83 @@ class CommentServiceTest {
             assertThat(thrown).hasMessageContaining(USERNAME);
 
             verify(commentRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("updateComment")
+    class UpdateComment {
+
+        private static final Long OTHER_USER_ID = 2L;
+        private static final String OTHER_USERNAME = "bob";
+
+        @Test
+        @DisplayName("updates the body and returns the mapped response")
+        void updatesAndReturns() {
+            var updateRequest = new CommentRequest("Updated body");
+            var updatedResponse = new CommentResponse(
+                    COMMENT_ID,
+                    "Updated body",
+                    POST_ID,
+                    new AuthorResponse(AUTHOR_ID, null, null, null, null),
+                    comment.getCreatedAt(),
+                    comment.getUpdatedAt());
+            when(commentRepository.findByIdAndPostId(COMMENT_ID, POST_ID)).thenReturn(Optional.of(comment));
+            when(commentMapper.toResponse(comment)).thenReturn(updatedResponse);
+
+            CommentResponse result = commentService.updateComment(POST_ID, COMMENT_ID, updateRequest, USERNAME);
+
+            assertThat(result).isEqualTo(updatedResponse);
+            assertThat(comment.getBody()).isEqualTo("Updated body");
+            verify(commentRepository).findByIdAndPostId(COMMENT_ID, POST_ID);
+            verify(commentMapper).toResponse(comment);
+        }
+
+        @Test
+        @DisplayName("throws CommentNotFoundException when the comment does not exist")
+        void throwsWhenCommentMissing() {
+            when(commentRepository.findByIdAndPostId(COMMENT_ID, POST_ID)).thenReturn(Optional.empty());
+
+            var thrown = assertThrows(
+                    CommentNotFoundException.class,
+                    () -> commentService.updateComment(POST_ID, COMMENT_ID, request, USERNAME));
+            assertThat(thrown).hasMessageContaining(String.valueOf(COMMENT_ID));
+        }
+
+        @Test
+        @DisplayName("throws ForbiddenOperationException when the user is not the owner")
+        void throwsWhenNotOwner() {
+            when(commentRepository.findByIdAndPostId(COMMENT_ID, POST_ID)).thenReturn(Optional.of(comment));
+
+            var thrown = assertThrows(
+                    ForbiddenOperationException.class,
+                    () -> commentService.updateComment(POST_ID, COMMENT_ID, request, OTHER_USERNAME));
+            assertThat(thrown).hasMessageContaining(OTHER_USERNAME).hasMessageContaining(String.valueOf(COMMENT_ID));
+        }
+    }
+
+    @Nested
+    @DisplayName("deleteComment")
+    class DeleteComment {
+
+        @Test
+        @DisplayName("deletes the comment when it exists")
+        void deletesWhenExists() {
+            when(commentRepository.findByIdAndPostId(COMMENT_ID, POST_ID)).thenReturn(Optional.of(comment));
+
+            commentService.deleteComment(POST_ID, COMMENT_ID);
+
+            verify(commentRepository).delete(comment);
+        }
+
+        @Test
+        @DisplayName("throws CommentNotFoundException when the comment does not exist")
+        void throwsWhenCommentMissing() {
+            when(commentRepository.findByIdAndPostId(COMMENT_ID, POST_ID)).thenReturn(Optional.empty());
+
+            var thrown = assertThrows(
+                    CommentNotFoundException.class, () -> commentService.deleteComment(POST_ID, COMMENT_ID));
+            assertThat(thrown).hasMessageContaining(String.valueOf(COMMENT_ID));
         }
     }
 }

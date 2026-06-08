@@ -8,6 +8,7 @@ import com.quill.config.TestSecurityConfig;
 import com.quill.dto.request.CommentRequest;
 import com.quill.dto.response.AuthorResponse;
 import com.quill.dto.response.CommentResponse;
+import com.quill.exception.ForbiddenOperationException;
 import com.quill.service.CommentService;
 import java.time.Instant;
 import java.util.List;
@@ -134,6 +135,88 @@ class CommentControllerTest {
                             .uri("/api/posts/{postId}/comments", POST_ID)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonMapper.writeValueAsString(request)))
+                    .hasStatus(HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    @Nested
+    @DisplayName("PUT /api/posts/{postId}/comments/{id}")
+    class UpdateComment {
+
+        @Test
+        @WithMockUser(username = USERNAME)
+        void updatesAndReturns200() {
+            var updateRequest = new CommentRequest("Updated body");
+            var updatedResponse = new CommentResponse(
+                    COMMENT_ID,
+                    "Updated body",
+                    POST_ID,
+                    new AuthorResponse(AUTHOR_ID, null, null, null, null),
+                    Instant.parse("2024-01-01T00:00:00Z"),
+                    Instant.parse("2024-01-01T01:00:00Z"));
+            when(commentService.updateComment(POST_ID, COMMENT_ID, updateRequest, USERNAME))
+                    .thenReturn(updatedResponse);
+
+            assertThat(mockMvc.put()
+                            .uri("/api/posts/{postId}/comments/{id}", POST_ID, COMMENT_ID)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(updateRequest)))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.body")
+                    .asString()
+                    .isEqualTo("Updated body");
+            verify(commentService).updateComment(POST_ID, COMMENT_ID, updateRequest, USERNAME);
+        }
+
+        @Test
+        @WithMockUser
+        void returns400WhenBodyMissing() {
+            assertThat(mockMvc.put()
+                            .uri("/api/posts/{postId}/comments/{id}", POST_ID, COMMENT_ID)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{}"))
+                    .hasStatus(HttpStatus.BAD_REQUEST);
+        }
+
+        @Test
+        @WithMockUser(username = "bob")
+        void returns403WhenNotOwner() {
+            when(commentService.updateComment(POST_ID, COMMENT_ID, request, "bob"))
+                    .thenThrow(new ForbiddenOperationException("not owner"));
+
+            assertThat(mockMvc.put()
+                            .uri("/api/posts/{postId}/comments/{id}", POST_ID, COMMENT_ID)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .hasStatus(HttpStatus.FORBIDDEN);
+        }
+
+        @Test
+        void requiresAuthentication() {
+            assertThat(mockMvc.put()
+                            .uri("/api/posts/{postId}/comments/{id}", POST_ID, COMMENT_ID)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .hasStatus(HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /api/posts/{postId}/comments/{id}")
+    class DeleteComment {
+
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        void deletesAndReturns204() {
+            assertThat(mockMvc.delete().uri("/api/posts/{postId}/comments/{id}", POST_ID, COMMENT_ID))
+                    .hasStatus(HttpStatus.NO_CONTENT);
+            verify(commentService).deleteComment(POST_ID, COMMENT_ID);
+        }
+
+        @Test
+        void requiresAuthentication() {
+            assertThat(mockMvc.delete().uri("/api/posts/{postId}/comments/{id}", POST_ID, COMMENT_ID))
                     .hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }
