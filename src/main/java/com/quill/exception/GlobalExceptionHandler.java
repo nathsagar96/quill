@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -28,6 +30,26 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         log.warn("Application exception: {}", ex.getMessage());
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(ex.getHttpStatus(), ex.getMessage());
         problem.setTitle(ex.getClass().getSimpleName());
+        problem.setProperty("timestamp", Instant.now().toString());
+        return problem;
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ProblemDetail handleBadCredentials(BadCredentialsException ex) {
+        log.warn("Authentication failure: {}", ex.getMessage());
+        ProblemDetail problem =
+                ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+        problem.setTitle("AuthenticationFailed");
+        problem.setProperty("timestamp", Instant.now().toString());
+        return problem;
+    }
+
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ProblemDetail handleUsernameNotFound(UsernameNotFoundException ex) {
+        log.warn("Authentication failure: {}", ex.getMessage());
+        ProblemDetail problem =
+                ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+        problem.setTitle("AuthenticationFailed");
         problem.setProperty("timestamp", Instant.now().toString());
         return problem;
     }

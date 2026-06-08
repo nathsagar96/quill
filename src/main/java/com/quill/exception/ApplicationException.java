@@ -5,7 +5,11 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 public abstract sealed class ApplicationException extends RuntimeException
-        permits CommentNotFoundException, PostNotFoundException, UserNotFoundException {
+        permits CommentNotFoundException,
+                DuplicateEmailException,
+                DuplicateUsernameException,
+                PostNotFoundException,
+                UserNotFoundException {
 
     private final HttpStatus httpStatus;
 

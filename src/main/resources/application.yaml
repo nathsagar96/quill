@@ -10,3 +10,8 @@ spring:
     open-in-view: false
     properties:
       hibernate.jdbc.time_zone: UTC
+
+quill:
+  jwt:
+    key-store: config/jwt-keys.json
+    expiration: 24h
