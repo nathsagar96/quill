@@ -56,7 +56,7 @@ class CommentMapperTest {
         @Test
         @DisplayName("sets body, post, and author from the request and supplied entities")
         void setsBodyPostAndAuthor() {
-            var request = new CommentRequest("Nice post!", 10L, 7L);
+            var request = new CommentRequest("Nice post!");
             var post = Post.builder().id(10L).build();
             var author = User.builder().id(7L).build();
 
@@ -70,7 +70,7 @@ class CommentMapperTest {
         @Test
         @DisplayName("leaves id, audit fields, and post/author collections to JPA")
         void doesNotSetPersistedFields() {
-            var request = new CommentRequest("Nice post!", 10L, 7L);
+            var request = new CommentRequest("Nice post!");
             var post = Post.builder().id(10L).build();
             var author = User.builder().id(7L).build();
 

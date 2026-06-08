@@ -54,7 +54,7 @@ class PostMapperTest {
         @Test
         @DisplayName("sets title, body, and author from the request and supplied user")
         void setsTitleBodyAndAuthor() {
-            PostRequest request = new PostRequest("Title", "Body", 1L);
+            PostRequest request = new PostRequest("Title", "Body");
             User author = User.builder().id(1L).build();
 
             Post entity = mapper.toEntity(request, author);
@@ -67,7 +67,7 @@ class PostMapperTest {
         @Test
         @DisplayName("leaves id, audit fields, and comments to JPA")
         void doesNotSetPersistedFields() {
-            PostRequest request = new PostRequest("Title", "Body", 1L);
+            PostRequest request = new PostRequest("Title", "Body");
             User author = User.builder().id(1L).build();
 
             Post entity = mapper.toEntity(request, author);

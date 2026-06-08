@@ -42,9 +42,9 @@ public class PostService {
     }
 
     @Transactional
-    public PostResponse createPost(PostRequest request) {
-        log.info("Creating post: title='{}', authorId={}", request.title(), request.authorId());
-        User author = findUserById(request.authorId());
+    public PostResponse createPost(PostRequest request, String username) {
+        log.info("Creating post: title='{}', username='{}'", request.title(), username);
+        User author = findUserByUsername(username);
         Post entity = postMapper.toEntity(request, author);
         Post saved = postRepository.save(entity);
         log.info("Created post with id={}", saved.getId());
@@ -55,10 +55,8 @@ public class PostService {
     public PostResponse updatePost(Long id, PostRequest request) {
         log.info("Updating post with id={}", id);
         Post existing = postRepository.findById(id).orElseThrow(() -> new PostNotFoundException(id));
-        User author = findUserById(request.authorId());
         existing.setTitle(request.title());
         existing.setBody(request.body());
-        existing.setAuthor(author);
         log.info("Updated post with id={}", id);
         return postMapper.toResponse(existing);
     }
@@ -74,7 +72,9 @@ public class PostService {
         log.info("Deleted post with id={}", id);
     }
 
-    private User findUserById(Long id) {
-        return userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
+    private User findUserByUsername(String username) {
+        return userRepository
+                .findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
     }
 }

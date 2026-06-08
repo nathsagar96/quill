@@ -39,6 +39,7 @@ class PostServiceTest {
     private static final Long POST_ID = 10L;
     private static final Long MISSING_POST_ID = 99L;
     private static final Long AUTHOR_ID = 1L;
+    private static final String USERNAME = "alice";
 
     @Mock
     private PostRepository postRepository;
@@ -68,7 +69,7 @@ class PostServiceTest {
                 .createdAt(Instant.parse("2024-01-01T00:00:00Z"))
                 .updatedAt(Instant.parse("2024-01-01T00:00:00Z"))
                 .build();
-        request = new PostRequest("New title", "New body", AUTHOR_ID);
+        request = new PostRequest("New title", "New body");
         response = new PostResponse(
                 POST_ID,
                 "New title",
@@ -153,28 +154,28 @@ class PostServiceTest {
     class CreatePost {
 
         @Test
-        @DisplayName("resolves the author, persists, and returns the mapped response")
+        @DisplayName("resolves the author by username, persists, and returns the mapped response")
         void createsAndReturns() {
-            when(userRepository.findById(AUTHOR_ID)).thenReturn(Optional.of(author));
+            when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
             when(postMapper.toEntity(request, author)).thenReturn(post);
             when(postRepository.save(post)).thenReturn(post);
             when(postMapper.toResponse(post)).thenReturn(response);
 
-            PostResponse result = postService.createPost(request);
+            PostResponse result = postService.createPost(request, USERNAME);
 
             assertThat(result).isEqualTo(response);
-            verify(userRepository).findById(AUTHOR_ID);
+            verify(userRepository).findByUsername(USERNAME);
             verify(postMapper).toEntity(request, author);
             verify(postRepository).save(post);
         }
 
         @Test
-        @DisplayName("throws UserNotFoundException with the missing id when the author does not exist")
+        @DisplayName("throws UserNotFoundException when the username does not exist")
         void throwsWhenAuthorMissing() {
-            when(userRepository.findById(AUTHOR_ID)).thenReturn(Optional.empty());
+            when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.empty());
 
-            var thrown = assertThrows(UserNotFoundException.class, () -> postService.createPost(request));
-            assertThat(thrown).hasMessageContaining(String.valueOf(AUTHOR_ID));
+            var thrown = assertThrows(UserNotFoundException.class, () -> postService.createPost(request, USERNAME));
+            assertThat(thrown).hasMessageContaining(USERNAME);
 
             verify(postRepository, never()).save(any());
         }
@@ -188,7 +189,6 @@ class PostServiceTest {
         @DisplayName("mutates the loaded entity and returns the mapped response")
         void updatesAndReturns() {
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(post));
-            when(userRepository.findById(AUTHOR_ID)).thenReturn(Optional.of(author));
             when(postMapper.toResponse(post)).thenReturn(response);
 
             PostResponse result = postService.updatePost(POST_ID, request);
@@ -196,7 +196,6 @@ class PostServiceTest {
             assertThat(result).isEqualTo(response);
             assertThat(post.getTitle()).isEqualTo(request.title());
             assertThat(post.getBody()).isEqualTo(request.body());
-            assertThat(post.getAuthor()).isEqualTo(author);
         }
 
         @Test
@@ -207,18 +206,6 @@ class PostServiceTest {
             var thrown =
                     assertThrows(PostNotFoundException.class, () -> postService.updatePost(MISSING_POST_ID, request));
             assertThat(thrown).hasMessageContaining(String.valueOf(MISSING_POST_ID));
-
-            verify(userRepository, never()).findById(AUTHOR_ID);
-        }
-
-        @Test
-        @DisplayName("throws UserNotFoundException with the missing id when the new author does not exist")
-        void throwsWhenAuthorMissing() {
-            when(postRepository.findById(POST_ID)).thenReturn(Optional.of(post));
-            when(userRepository.findById(AUTHOR_ID)).thenReturn(Optional.empty());
-
-            var thrown = assertThrows(UserNotFoundException.class, () -> postService.updatePost(POST_ID, request));
-            assertThat(thrown).hasMessageContaining(String.valueOf(AUTHOR_ID));
         }
     }
 

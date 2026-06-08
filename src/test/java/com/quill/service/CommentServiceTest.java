@@ -44,7 +44,7 @@ class CommentServiceTest {
     private static final Long POST_ID = 10L;
     private static final Long MISSING_POST_ID = 99L;
     private static final Long AUTHOR_ID = 1L;
-    private static final Long MISSING_AUTHOR_ID = 2L;
+    private static final String USERNAME = "alice";
 
     @Mock
     private CommentRepository commentRepository;
@@ -84,7 +84,7 @@ class CommentServiceTest {
                 .createdAt(Instant.parse("2024-01-01T00:00:00Z"))
                 .updatedAt(Instant.parse("2024-01-01T00:00:00Z"))
                 .build();
-        request = new CommentRequest("Nice post!", POST_ID, AUTHOR_ID);
+        request = new CommentRequest("Nice post!");
         response = new CommentResponse(
                 COMMENT_ID,
                 "Nice post!",
@@ -178,19 +178,19 @@ class CommentServiceTest {
     class CreateComment {
 
         @Test
-        @DisplayName("resolves the post and author, persists, and returns the mapped response")
+        @DisplayName("resolves the post and author by username, persists, and returns the mapped response")
         void createsAndReturns() {
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(post));
-            when(userRepository.findById(AUTHOR_ID)).thenReturn(Optional.of(author));
+            when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
             when(commentMapper.toEntity(request, post, author)).thenReturn(comment);
             when(commentRepository.save(comment)).thenReturn(comment);
             when(commentMapper.toResponse(comment)).thenReturn(response);
 
-            CommentResponse result = commentService.createComment(request);
+            CommentResponse result = commentService.createComment(request, POST_ID, USERNAME);
 
             assertThat(result).isEqualTo(response);
             verify(postRepository).findById(POST_ID);
-            verify(userRepository).findById(AUTHOR_ID);
+            verify(userRepository).findByUsername(USERNAME);
             verify(commentMapper).toEntity(request, post, author);
             verify(commentRepository).save(comment);
         }
@@ -199,12 +199,13 @@ class CommentServiceTest {
         @DisplayName("throws PostNotFoundException when the post does not exist")
         void throwsWhenPostMissing() {
             when(postRepository.findById(MISSING_POST_ID)).thenReturn(Optional.empty());
-            var req = new CommentRequest("Body", MISSING_POST_ID, AUTHOR_ID);
 
-            var thrown = assertThrows(PostNotFoundException.class, () -> commentService.createComment(req));
+            var thrown = assertThrows(
+                    PostNotFoundException.class,
+                    () -> commentService.createComment(request, MISSING_POST_ID, USERNAME));
             assertThat(thrown).hasMessageContaining(String.valueOf(MISSING_POST_ID));
 
-            verify(userRepository, never()).findById(any());
+            verify(userRepository, never()).findByUsername(any());
             verify(commentRepository, never()).save(any());
         }
 
@@ -212,11 +213,11 @@ class CommentServiceTest {
         @DisplayName("throws UserNotFoundException when the author does not exist")
         void throwsWhenAuthorMissing() {
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(post));
-            when(userRepository.findById(MISSING_AUTHOR_ID)).thenReturn(Optional.empty());
-            var req = new CommentRequest("Body", POST_ID, MISSING_AUTHOR_ID);
+            when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.empty());
 
-            var thrown = assertThrows(UserNotFoundException.class, () -> commentService.createComment(req));
-            assertThat(thrown).hasMessageContaining(String.valueOf(MISSING_AUTHOR_ID));
+            var thrown = assertThrows(
+                    UserNotFoundException.class, () -> commentService.createComment(request, POST_ID, USERNAME));
+            assertThat(thrown).hasMessageContaining(USERNAME);
 
             verify(commentRepository, never()).save(any());
         }

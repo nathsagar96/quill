@@ -48,10 +48,10 @@ public class CommentService {
     }
 
     @Transactional
-    public CommentResponse createComment(CommentRequest request) {
-        log.info("Creating comment: postId={}, authorId={}", request.postId(), request.authorId());
-        Post post = findPostById(request.postId());
-        User author = findUserById(request.authorId());
+    public CommentResponse createComment(CommentRequest request, Long postId, String username) {
+        log.info("Creating comment: postId={}, username='{}'", postId, username);
+        Post post = findPostById(postId);
+        User author = findUserByUsername(username);
         Comment entity = commentMapper.toEntity(request, post, author);
         Comment saved = commentRepository.save(entity);
         log.info("Created comment with id={}", saved.getId());
@@ -62,7 +62,9 @@ public class CommentService {
         return postRepository.findById(id).orElseThrow(() -> new PostNotFoundException(id));
     }
 
-    private User findUserById(Long id) {
-        return userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
+    private User findUserByUsername(String username) {
+        return userRepository
+                .findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
     }
 }
