@@ -3,6 +3,7 @@ package com.quill.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -38,6 +39,9 @@ class CategoryServiceTest {
     @Mock
     private CategoryMapper categoryMapper;
 
+    @Mock
+    private SlugService slugService;
+
     @InjectMocks
     private CategoryService categoryService;
 
@@ -55,7 +59,7 @@ class CategoryServiceTest {
                 .createdAt(Instant.parse("2024-01-01T00:00:00Z"))
                 .updatedAt(Instant.parse("2024-01-01T00:00:00Z"))
                 .build();
-        request = new CategoryRequest("Technology", "technology", "Tech posts");
+        request = new CategoryRequest("Technology", "Tech posts");
         response = new CategoryResponse(
                 CATEGORY_ID,
                 "Technology",
@@ -116,6 +120,8 @@ class CategoryServiceTest {
         @DisplayName("persists and returns mapped response")
         void createsAndReturns() {
             when(categoryMapper.toEntity(request)).thenReturn(category);
+            when(slugService.toUniqueSlug(eq("Technology"), eq("untitled-category"), any()))
+                    .thenReturn("technology");
             when(categoryRepository.save(category)).thenReturn(category);
             when(categoryMapper.toResponse(category)).thenReturn(response);
 
@@ -143,6 +149,20 @@ class CategoryServiceTest {
             assertThat(category.getSlug()).isEqualTo("technology");
             assertThat(category.getDescription()).isEqualTo("Tech posts");
             assertThat(result).isEqualTo(response);
+        }
+
+        @Test
+        @DisplayName("regenerates slug when name changes")
+        void regeneratesSlugOnNameChange() {
+            var renameRequest = new CategoryRequest("New Name", null);
+            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
+            when(slugService.toUniqueSlug(eq("New Name"), eq("untitled-category"), any()))
+                    .thenReturn("new-name");
+
+            categoryService.updateCategory(CATEGORY_ID, renameRequest);
+
+            assertThat(category.getName()).isEqualTo("New Name");
+            assertThat(category.getSlug()).isEqualTo("new-name");
         }
 
         @Test

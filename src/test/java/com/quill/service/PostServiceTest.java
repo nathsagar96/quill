@@ -3,6 +3,7 @@ package com.quill.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -66,6 +67,9 @@ class PostServiceTest {
     @Mock
     private PostMapper postMapper;
 
+    @Mock
+    private SlugService slugService;
+
     @InjectMocks
     private PostService postService;
 
@@ -85,6 +89,7 @@ class PostServiceTest {
                 .id(POST_ID)
                 .title("Title")
                 .body("Body")
+                .slug("test-post")
                 .author(author)
                 .categories(Set.of(category))
                 .tags(Set.of(tag))
@@ -97,6 +102,7 @@ class PostServiceTest {
                 "New title",
                 "New body",
                 null,
+                "new-title",
                 new AuthorResponse(AUTHOR_ID, null, null, null, null),
                 Set.of(CATEGORY_ID),
                 Set.of(TAG_ID),
@@ -117,6 +123,7 @@ class PostServiceTest {
                     "Other",
                     "...",
                     null,
+                    "other",
                     new AuthorResponse(AUTHOR_ID, null, null, null, null),
                     Set.of(1L),
                     Set.of(),
@@ -215,6 +222,37 @@ class PostServiceTest {
     }
 
     @Nested
+    @DisplayName("findPostBySlug")
+    class FindPostBySlug {
+
+        private static final String SLUG = "my-post";
+
+        @Test
+        @DisplayName("returns a mapped response when the post exists")
+        void returnsMappedResponse() {
+            when(postRepository.findBySlug(SLUG)).thenReturn(Optional.of(post));
+            when(postMapper.toResponse(post)).thenReturn(response);
+
+            PostResponse result = postService.findPostBySlug(SLUG);
+
+            assertThat(result).isEqualTo(response);
+            verify(postRepository).findBySlug(SLUG);
+            verify(postMapper).toResponse(post);
+        }
+
+        @Test
+        @DisplayName("throws PostNotFoundException when the slug does not exist")
+        void throwsWhenMissing() {
+            when(postRepository.findBySlug(SLUG)).thenReturn(Optional.empty());
+
+            var thrown = assertThrows(PostNotFoundException.class, () -> postService.findPostBySlug(SLUG));
+            assertThat(thrown).hasMessageContaining(SLUG);
+
+            verify(postMapper, never()).toResponse(any());
+        }
+    }
+
+    @Nested
     @DisplayName("createPost")
     class CreatePost {
 
@@ -224,6 +262,7 @@ class PostServiceTest {
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
             when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
             when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
+            when(slugService.toUniqueSlug(eq("New title"), eq("post"), any())).thenReturn("new-title");
             when(postMapper.toEntity(request, author, Set.of(category), Set.of(tag)))
                     .thenReturn(post);
             when(postRepository.save(post)).thenReturn(post);
@@ -245,6 +284,7 @@ class PostServiceTest {
             var requestNoTags = new PostRequest("Title", "Body", null, Set.of(CATEGORY_ID), Set.of());
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
             when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
+            when(slugService.toUniqueSlug(eq("Title"), eq("post"), any())).thenReturn("title");
             when(postMapper.toEntity(requestNoTags, author, Set.of(category), Set.of()))
                     .thenReturn(post);
             when(postRepository.save(post)).thenReturn(post);
@@ -298,6 +338,7 @@ class PostServiceTest {
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(post));
             when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
             when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
+            when(slugService.toUniqueSlug(eq("New title"), eq("post"), any())).thenReturn("new-title");
             when(postMapper.toResponse(post)).thenReturn(response);
 
             PostResponse result = postService.updatePost(POST_ID, request, USERNAME, false);
@@ -305,6 +346,7 @@ class PostServiceTest {
             assertThat(result).isEqualTo(response);
             assertThat(post.getTitle()).isEqualTo(request.title());
             assertThat(post.getBody()).isEqualTo(request.body());
+            assertThat(post.getSlug()).isEqualTo("new-title");
             assertThat(post.getCategories()).containsExactly(category);
             assertThat(post.getTags()).containsExactly(tag);
         }
@@ -315,6 +357,7 @@ class PostServiceTest {
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(post));
             when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
             when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
+            when(slugService.toUniqueSlug(eq("New title"), eq("post"), any())).thenReturn("new-title");
             when(postMapper.toResponse(post)).thenReturn(response);
 
             PostResponse result = postService.updatePost(POST_ID, request, "other", true);
@@ -322,6 +365,7 @@ class PostServiceTest {
             assertThat(result).isEqualTo(response);
             assertThat(post.getTitle()).isEqualTo(request.title());
             assertThat(post.getBody()).isEqualTo(request.body());
+            assertThat(post.getSlug()).isEqualTo("new-title");
         }
 
         @Test

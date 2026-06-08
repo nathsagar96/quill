@@ -51,6 +51,9 @@ public class Post {
     @Column(name = "excerpt", length = 500)
     private String excerpt;
 
+    @Column(nullable = false, unique = true, length = 255)
+    private String slug;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "author_id", nullable = false)
     private User author;

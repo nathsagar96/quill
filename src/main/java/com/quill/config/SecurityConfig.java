@@ -43,6 +43,7 @@ public class SecurityConfig {
                                 HttpMethod.GET,
                                 "/api/posts",
                                 "/api/posts/*",
+                                "/api/posts/slug/*",
                                 "/api/categories",
                                 "/api/categories/*",
                                 "/api/tags",

@@ -37,6 +37,9 @@ public class Tag {
     @Column(nullable = false, unique = true, length = 50)
     private String name;
 
+    @Column(nullable = false, unique = true, length = 120)
+    private String slug;
+
     @ManyToMany(mappedBy = "tags")
     @Builder.Default
     private Set<Post> posts = new HashSet<>();

@@ -27,6 +27,7 @@ class TagMapperTest {
             var entity = Tag.builder()
                     .id(1L)
                     .name("java")
+                    .slug("java")
                     .createdAt(created)
                     .updatedAt(updated)
                     .build();
@@ -35,6 +36,7 @@ class TagMapperTest {
 
             assertThat(response.id()).isEqualTo(1L);
             assertThat(response.name()).isEqualTo("java");
+            assertThat(response.slug()).isEqualTo("java");
             assertThat(response.createdAt()).isEqualTo(created);
             assertThat(response.updatedAt()).isEqualTo(updated);
         }
@@ -62,6 +64,7 @@ class TagMapperTest {
             Tag entity = mapper.toEntity(request);
 
             assertThat(entity.getId()).isNull();
+            assertThat(entity.getSlug()).isNull();
             assertThat(entity.getCreatedAt()).isNull();
             assertThat(entity.getUpdatedAt()).isNull();
             assertThat(entity.getPosts()).isEmpty();

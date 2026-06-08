@@ -3,6 +3,7 @@ package com.quill.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -38,6 +39,9 @@ class TagServiceTest {
     @Mock
     private TagMapper tagMapper;
 
+    @Mock
+    private SlugService slugService;
+
     @InjectMocks
     private TagService tagService;
 
@@ -50,12 +54,13 @@ class TagServiceTest {
         tag = Tag.builder()
                 .id(TAG_ID)
                 .name("java")
+                .slug("java")
                 .createdAt(Instant.parse("2024-01-01T00:00:00Z"))
                 .updatedAt(Instant.parse("2024-01-01T00:00:00Z"))
                 .build();
         request = new TagRequest("java");
         response = new TagResponse(
-                TAG_ID, "java", Instant.parse("2024-01-01T00:00:00Z"), Instant.parse("2024-01-01T00:00:00Z"));
+                TAG_ID, "java", "java", Instant.parse("2024-01-01T00:00:00Z"), Instant.parse("2024-01-01T00:00:00Z"));
     }
 
     @Nested
@@ -108,6 +113,8 @@ class TagServiceTest {
         @DisplayName("persists and returns mapped response")
         void createsAndReturns() {
             when(tagMapper.toEntity(request)).thenReturn(tag);
+            when(slugService.toUniqueSlug(eq("java"), eq("untitled-tag"), any()))
+                    .thenReturn("java");
             when(tagRepository.save(tag)).thenReturn(tag);
             when(tagMapper.toResponse(tag)).thenReturn(response);
 
@@ -132,7 +139,22 @@ class TagServiceTest {
             var result = tagService.updateTag(TAG_ID, request);
 
             assertThat(tag.getName()).isEqualTo("java");
+            assertThat(tag.getSlug()).isEqualTo("java");
             assertThat(result).isEqualTo(response);
+        }
+
+        @Test
+        @DisplayName("regenerates slug when name changes")
+        void regeneratesSlugOnNameChange() {
+            var renameRequest = new TagRequest("kotlin");
+            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
+            when(slugService.toUniqueSlug(eq("kotlin"), eq("untitled-tag"), any()))
+                    .thenReturn("kotlin");
+
+            tagService.updateTag(TAG_ID, renameRequest);
+
+            assertThat(tag.getName()).isEqualTo("kotlin");
+            assertThat(tag.getSlug()).isEqualTo("kotlin");
         }
 
         @Test

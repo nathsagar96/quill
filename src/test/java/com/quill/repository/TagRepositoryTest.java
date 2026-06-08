@@ -24,7 +24,7 @@ class TagRepositoryTest {
     @Test
     @DisplayName("should persist a tag and assign an id")
     void shouldPersistTag() {
-        var tag = Tag.builder().name("java").build();
+        var tag = Tag.builder().name("java").slug("java").build();
 
         Tag saved = tagRepository.saveAndFlush(tag);
 
@@ -37,9 +37,27 @@ class TagRepositoryTest {
     @Test
     @DisplayName("should find tag by name")
     void shouldFindByName() {
-        tagRepository.saveAndFlush(Tag.builder().name("spring").build());
+        tagRepository.saveAndFlush(Tag.builder().name("spring").slug("spring").build());
 
         assertThat(tagRepository.findByName("spring")).isPresent();
         assertThat(tagRepository.findByName("nonexistent")).isNotPresent();
+    }
+
+    @Test
+    @DisplayName("should find tag by slug")
+    void shouldFindBySlug() {
+        tagRepository.saveAndFlush(Tag.builder().name("java").slug("java").build());
+
+        assertThat(tagRepository.findBySlug("java")).isPresent();
+        assertThat(tagRepository.findBySlug("nonexistent")).isNotPresent();
+    }
+
+    @Test
+    @DisplayName("should return true from existsBySlug when slug exists")
+    void shouldReturnTrueWhenSlugExists() {
+        tagRepository.saveAndFlush(Tag.builder().name("java").slug("java").build());
+
+        assertThat(tagRepository.existsBySlug("java")).isTrue();
+        assertThat(tagRepository.existsBySlug("nonexistent")).isFalse();
     }
 }

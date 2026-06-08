@@ -50,6 +50,7 @@ class PostRepositoryTest {
         Post post = Post.builder()
                 .title("Hello, World")
                 .body("First post body")
+                .slug("hello-world")
                 .author(author)
                 .build();
 
@@ -72,8 +73,12 @@ class PostRepositoryTest {
     @Test
     @DisplayName("should delete a post by id")
     void shouldDeletePost() {
-        Post saved = postRepository.saveAndFlush(
-                Post.builder().title("To delete").body("Body").author(author).build());
+        Post saved = postRepository.saveAndFlush(Post.builder()
+                .title("To delete")
+                .body("Body")
+                .slug("to-delete")
+                .author(author)
+                .build());
         Long id = saved.getId();
 
         postRepository.deleteById(id);
@@ -88,6 +93,7 @@ class PostRepositoryTest {
         Post saved = postRepository.saveAndFlush(Post.builder()
                 .title("Old title")
                 .body("Old body")
+                .slug("old-title")
                 .author(author)
                 .build());
         saved.setTitle("New title");
@@ -107,6 +113,7 @@ class PostRepositoryTest {
             postRepository.saveAndFlush(Post.builder()
                     .title("Post %d".formatted(i))
                     .body("Body %d".formatted(i))
+                    .slug("post-%d".formatted(i))
                     .author(author)
                     .build());
         }
@@ -128,8 +135,12 @@ class PostRepositoryTest {
     @Test
     @DisplayName("should cascade-persist a comment added to a new post")
     void shouldCascadePersistComments() {
-        Post post =
-                Post.builder().title("With comment").body("Body").author(author).build();
+        Post post = Post.builder()
+                .title("With comment")
+                .body("Body")
+                .slug("with-comment")
+                .author(author)
+                .build();
         post.getComments()
                 .add(Comment.builder()
                         .body("Nice post!")
@@ -148,7 +159,8 @@ class PostRepositoryTest {
     @Test
     @DisplayName("should reject a post with a null author (NOT NULL FK)")
     void shouldRejectPostWithNullAuthor() {
-        Post post = Post.builder().title("No author").body("Body").build();
+        Post post =
+                Post.builder().title("No author").body("Body").slug("no-author").build();
 
         assertThatThrownBy(() -> postRepository.saveAndFlush(post)).isInstanceOf(DataIntegrityViolationException.class);
     }
@@ -156,7 +168,12 @@ class PostRepositoryTest {
     @Test
     @DisplayName("should reject a post with a null title (NOT NULL column)")
     void shouldRejectPostWithNullTitle() {
-        Post post = Post.builder().title(null).body("Body").author(author).build();
+        Post post = Post.builder()
+                .title(null)
+                .body("Body")
+                .slug("null-title")
+                .author(author)
+                .build();
 
         assertThatThrownBy(() -> postRepository.saveAndFlush(post)).isInstanceOf(DataIntegrityViolationException.class);
     }
@@ -168,5 +185,70 @@ class PostRepositoryTest {
 
         assertThat(page.getContent()).isEmpty();
         assertThat(page.getTotalElements()).isZero();
+    }
+
+    @Test
+    @DisplayName("should find a post by slug")
+    void shouldFindPostBySlug() {
+        postRepository.saveAndFlush(Post.builder()
+                .title("My Post")
+                .body("Body")
+                .slug("my-post")
+                .author(author)
+                .build());
+
+        assertThat(postRepository.findBySlug("my-post")).isPresent().get().satisfies(p -> {
+            assertThat(p.getTitle()).isEqualTo("My Post");
+            assertThat(p.getSlug()).isEqualTo("my-post");
+        });
+    }
+
+    @Test
+    @DisplayName("should return empty when slug does not exist")
+    void shouldReturnEmptyWhenSlugNotFound() {
+        assertThat(postRepository.findBySlug("non-existent")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("should return true from existsBySlug when slug exists")
+    void shouldReturnTrueWhenSlugExists() {
+        postRepository.saveAndFlush(Post.builder()
+                .title("Exists")
+                .body("Body")
+                .slug("exists")
+                .author(author)
+                .build());
+
+        assertThat(postRepository.existsBySlug("exists")).isTrue();
+        assertThat(postRepository.existsBySlug("missing")).isFalse();
+    }
+
+    @Test
+    @DisplayName("should reject a post with a null slug (NOT NULL column)")
+    void shouldRejectNullSlug() {
+        Post post = Post.builder().title("No slug").body("Body").author(author).build();
+
+        assertThatThrownBy(() -> postRepository.saveAndFlush(post)).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("should reject a duplicate slug (UNIQUE constraint)")
+    void shouldRejectDuplicateSlug() {
+        postRepository.saveAndFlush(Post.builder()
+                .title("First")
+                .body("Body")
+                .slug("same-slug")
+                .author(author)
+                .build());
+
+        Post duplicate = Post.builder()
+                .title("Second")
+                .body("Body")
+                .slug("same-slug")
+                .author(author)
+                .build();
+
+        assertThatThrownBy(() -> postRepository.saveAndFlush(duplicate))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 }

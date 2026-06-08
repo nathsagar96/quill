@@ -46,8 +46,12 @@ class CommentRepositoryTest {
                 .email("bob@example.com")
                 .passwordHash("hashed-pw")
                 .build());
-        post = postRepository.saveAndFlush(
-                Post.builder().title("A post").body("Post body").author(author).build());
+        post = postRepository.saveAndFlush(Post.builder()
+                .title("A post")
+                .body("Post body")
+                .slug("a-post")
+                .author(author)
+                .build());
     }
 
     @Test

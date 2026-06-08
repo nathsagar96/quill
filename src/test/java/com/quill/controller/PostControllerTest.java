@@ -47,6 +47,7 @@ class PostControllerTest {
             "Title",
             "Body",
             null,
+            "title",
             new AuthorResponse(AUTHOR_ID, null, null, null, null),
             Set.of(CATEGORY_ID),
             Set.of(TAG_ID),
@@ -162,6 +163,40 @@ class PostControllerTest {
         @Test
         void allowsAnonymousAccess() {
             assertThat(mockMvc.get().uri("/api/posts/{id}", POST_ID)).hasStatusOk();
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/posts/slug/{slug}")
+    class FindPostBySlug {
+
+        private static final String SLUG = "my-post";
+
+        @Test
+        @WithMockUser
+        void returnsPostWhenFound() {
+            when(postService.findPostBySlug(SLUG)).thenReturn(response);
+
+            assertThat(mockMvc.get().uri("/api/posts/slug/{slug}", SLUG))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.id")
+                    .asNumber()
+                    .isEqualTo(10);
+            verify(postService).findPostBySlug(SLUG);
+        }
+
+        @Test
+        @WithMockUser
+        void returns404WhenNotFound() {
+            when(postService.findPostBySlug(SLUG)).thenThrow(new PostNotFoundException("not found"));
+
+            assertThat(mockMvc.get().uri("/api/posts/slug/{slug}", SLUG)).hasStatus(HttpStatus.NOT_FOUND);
+        }
+
+        @Test
+        void allowsAnonymousAccess() {
+            assertThat(mockMvc.get().uri("/api/posts/slug/{slug}", SLUG)).hasStatusOk();
         }
     }
 

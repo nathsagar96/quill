@@ -31,7 +31,7 @@ class TagControllerTest {
 
     private static final long TAG_ID = 1L;
     private final TagResponse response = new TagResponse(
-            TAG_ID, "java", Instant.parse("2024-01-01T00:00:00Z"), Instant.parse("2024-01-01T00:00:00Z"));
+            TAG_ID, "java", "java", Instant.parse("2024-01-01T00:00:00Z"), Instant.parse("2024-01-01T00:00:00Z"));
 
     @Autowired
     private MockMvcTester mockMvc;
@@ -51,7 +51,7 @@ class TagControllerTest {
                     .hasStatusOk()
                     .bodyJson()
                     .isEqualTo(
-                            "[{\"id\":1,\"name\":\"java\",\"createdAt\":\"2024-01-01T00:00:00Z\",\"updatedAt\":\"2024-01-01T00:00:00Z\"}]");
+                            "[{\"id\":1,\"name\":\"java\",\"slug\":\"java\",\"createdAt\":\"2024-01-01T00:00:00Z\",\"updatedAt\":\"2024-01-01T00:00:00Z\"}]");
             verify(tagService).findAllTags();
         }
 
@@ -143,6 +143,7 @@ class TagControllerTest {
             var request = new TagRequest("updated-java");
             var updatedResponse = new TagResponse(
                     TAG_ID,
+                    "updated-java",
                     "updated-java",
                     Instant.parse("2024-01-01T00:00:00Z"),
                     Instant.parse("2024-02-02T00:00:00Z"));

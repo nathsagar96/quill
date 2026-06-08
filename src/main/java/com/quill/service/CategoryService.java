@@ -19,6 +19,7 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
+    private final SlugService slugService;
 
     public java.util.List<CategoryResponse> findAllCategories() {
         log.debug("Fetching all categories");
@@ -39,6 +40,7 @@ public class CategoryService {
     public CategoryResponse createCategory(CategoryRequest request) {
         log.info("Creating category: name='{}'", request.name());
         Category entity = categoryMapper.toEntity(request);
+        entity.setSlug(slugService.toUniqueSlug(request.name(), "untitled-category", categoryRepository::existsBySlug));
         Category saved = categoryRepository.save(entity);
         log.info("Created category with id={}", saved.getId());
         return categoryMapper.toResponse(saved);
@@ -48,8 +50,14 @@ public class CategoryService {
     public CategoryResponse updateCategory(Long id, CategoryRequest request) {
         log.info("Updating category with id={}", id);
         Category existing = categoryRepository.findById(id).orElseThrow(() -> new CategoryNotFoundException(id));
-        existing.setName(request.name());
-        existing.setSlug(request.slug());
+        String oldSlug = existing.getSlug();
+        if (!existing.getName().equals(request.name())) {
+            existing.setName(request.name());
+            existing.setSlug(slugService.toUniqueSlug(
+                    request.name(),
+                    "untitled-category",
+                    s -> categoryRepository.existsBySlug(s) && !s.equals(oldSlug)));
+        }
         existing.setDescription(request.description());
         log.info("Updated category with id={}", id);
         return categoryMapper.toResponse(existing);

@@ -9,7 +9,8 @@ import org.springframework.stereotype.Component;
 public class TagMapper {
 
     public TagResponse toResponse(Tag entity) {
-        return new TagResponse(entity.getId(), entity.getName(), entity.getCreatedAt(), entity.getUpdatedAt());
+        return new TagResponse(
+                entity.getId(), entity.getName(), entity.getSlug(), entity.getCreatedAt(), entity.getUpdatedAt());
     }
 
     public Tag toEntity(TagRequest request) {

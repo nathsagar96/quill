@@ -103,14 +103,13 @@ class CategoryControllerTest {
         @Test
         @WithMockUser
         void createsAndReturns201() {
-            var request = new CategoryRequest("Technology", "technology", "Tech posts");
+            var request = new CategoryRequest("Technology", "Tech posts");
             when(categoryService.createCategory(request)).thenReturn(response);
 
             assertThat(mockMvc.post()
                             .uri("/api/categories")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(
-                                    "{\"name\":\"Technology\",\"slug\":\"technology\",\"description\":\"Tech posts\"}"))
+                            .content("{\"name\":\"Technology\",\"description\":\"Tech posts\"}"))
                     .hasStatus(HttpStatus.CREATED)
                     .bodyJson()
                     .extractingPath("$.id")
@@ -125,17 +124,7 @@ class CategoryControllerTest {
             assertThat(mockMvc.post()
                             .uri("/api/categories")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"slug\":\"tech\"}"))
-                    .hasStatus(HttpStatus.BAD_REQUEST);
-        }
-
-        @Test
-        @WithMockUser
-        void returns400WhenSlugInvalid() {
-            assertThat(mockMvc.post()
-                            .uri("/api/categories")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"name\":\"Tech\",\"slug\":\"INVALID SLUG\"}"))
+                            .content("{}"))
                     .hasStatus(HttpStatus.BAD_REQUEST);
         }
 
@@ -144,7 +133,7 @@ class CategoryControllerTest {
             assertThat(mockMvc.post()
                             .uri("/api/categories")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"name\":\"Tech\",\"slug\":\"tech\"}"))
+                            .content("{\"name\":\"Tech\"}"))
                     .hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }
@@ -156,7 +145,7 @@ class CategoryControllerTest {
         @Test
         @WithMockUser
         void updatesAndReturns200() {
-            var request = new CategoryRequest("Updated", "updated", null);
+            var request = new CategoryRequest("Updated", null);
             var updatedResponse = new CategoryResponse(
                     CATEGORY_ID,
                     "Updated",
@@ -169,7 +158,7 @@ class CategoryControllerTest {
             assertThat(mockMvc.put()
                             .uri("/api/categories/{id}", CATEGORY_ID)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"name\":\"Updated\",\"slug\":\"updated\"}"))
+                            .content("{\"name\":\"Updated\"}"))
                     .hasStatusOk()
                     .bodyJson()
                     .extractingPath("$.name")
@@ -183,7 +172,7 @@ class CategoryControllerTest {
             assertThat(mockMvc.put()
                             .uri("/api/categories/{id}", CATEGORY_ID)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"name\":\"X\",\"slug\":\"x\"}"))
+                            .content("{\"name\":\"X\"}"))
                     .hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }

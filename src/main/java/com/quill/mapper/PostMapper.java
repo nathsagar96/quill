@@ -20,6 +20,7 @@ public class PostMapper {
                 entity.getTitle(),
                 entity.getBody(),
                 entity.getExcerpt(),
+                entity.getSlug(),
                 toAuthorResponse(entity.getAuthor()),
                 entity.getCategories().stream().map(Category::getId).collect(Collectors.toSet()),
                 entity.getTags().stream().map(Tag::getId).collect(Collectors.toSet()),

@@ -8,6 +8,7 @@ public record PostResponse(
         String title,
         String body,
         String excerpt,
+        String slug,
         AuthorResponse author,
         Set<Long> categoryIds,
         Set<Long> tagIds,

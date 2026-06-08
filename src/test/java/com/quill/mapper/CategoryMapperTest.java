@@ -65,25 +65,26 @@ class CategoryMapperTest {
     class ToEntity {
 
         @Test
-        @DisplayName("sets name, slug, and description from the request")
+        @DisplayName("sets name and description from the request")
         void setsFields() {
-            var request = new CategoryRequest("Technology", "technology", "Tech posts");
+            var request = new CategoryRequest("Technology", "Tech posts");
 
             Category entity = mapper.toEntity(request);
 
             assertThat(entity.getName()).isEqualTo("Technology");
-            assertThat(entity.getSlug()).isEqualTo("technology");
+            assertThat(entity.getSlug()).isNull();
             assertThat(entity.getDescription()).isEqualTo("Tech posts");
         }
 
         @Test
         @DisplayName("leaves id and audit fields to JPA")
         void doesNotSetPersistedFields() {
-            var request = new CategoryRequest("Tech", "tech", null);
+            var request = new CategoryRequest("Tech", null);
 
             Category entity = mapper.toEntity(request);
 
             assertThat(entity.getId()).isNull();
+            assertThat(entity.getSlug()).isNull();
             assertThat(entity.getCreatedAt()).isNull();
             assertThat(entity.getUpdatedAt()).isNull();
             assertThat(entity.getPosts()).isEmpty();

@@ -35,6 +35,7 @@ class PostMapperTest {
                     .id(42L)
                     .title("Title")
                     .body("Body")
+                    .slug("title")
                     .author(author)
                     .categories(Set.of(cat))
                     .tags(Set.of(tag))
@@ -47,6 +48,7 @@ class PostMapperTest {
             assertThat(response.id()).isEqualTo(42L);
             assertThat(response.title()).isEqualTo("Title");
             assertThat(response.body()).isEqualTo("Body");
+            assertThat(response.slug()).isEqualTo("title");
             assertThat(response.author().id()).isEqualTo(7L);
             assertThat(response.author().username()).isNull();
             assertThat(response.author().displayName()).isNull();
@@ -75,6 +77,7 @@ class PostMapperTest {
 
             assertThat(entity.getTitle()).isEqualTo("Title");
             assertThat(entity.getBody()).isEqualTo("Body");
+            assertThat(entity.getSlug()).isNull();
             assertThat(entity.getAuthor()).isSameAs(author);
             assertThat(entity.getCategories()).containsExactly(cat);
             assertThat(entity.getTags()).containsExactly(tag);
@@ -90,6 +93,7 @@ class PostMapperTest {
             Post entity = mapper.toEntity(request, author, Set.of(cat), Set.of());
 
             assertThat(entity.getId()).isNull();
+            assertThat(entity.getSlug()).isNull();
             assertThat(entity.getCreatedAt()).isNull();
             assertThat(entity.getUpdatedAt()).isNull();
             assertThat(entity.getComments()).isEmpty();

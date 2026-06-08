@@ -21,7 +21,6 @@ public class CategoryMapper {
     public Category toEntity(CategoryRequest request) {
         return Category.builder()
                 .name(request.name())
-                .slug(request.slug())
                 .description(request.description())
                 .build();
     }

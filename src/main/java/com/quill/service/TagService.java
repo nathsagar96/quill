@@ -19,6 +19,7 @@ public class TagService {
 
     private final TagRepository tagRepository;
     private final TagMapper tagMapper;
+    private final SlugService slugService;
 
     public java.util.List<TagResponse> findAllTags() {
         log.debug("Fetching all tags");
@@ -34,6 +35,7 @@ public class TagService {
     public TagResponse createTag(TagRequest request) {
         log.info("Creating tag: name='{}'", request.name());
         Tag entity = tagMapper.toEntity(request);
+        entity.setSlug(slugService.toUniqueSlug(request.name(), "untitled-tag", tagRepository::existsBySlug));
         Tag saved = tagRepository.save(entity);
         log.info("Created tag with id={}", saved.getId());
         return tagMapper.toResponse(saved);
@@ -43,7 +45,12 @@ public class TagService {
     public TagResponse updateTag(Long id, TagRequest request) {
         log.info("Updating tag with id={}", id);
         Tag existing = tagRepository.findById(id).orElseThrow(() -> new TagNotFoundException(id));
-        existing.setName(request.name());
+        String oldSlug = existing.getSlug();
+        if (!existing.getName().equals(request.name())) {
+            existing.setName(request.name());
+            existing.setSlug(slugService.toUniqueSlug(
+                    request.name(), "untitled-tag", s -> tagRepository.existsBySlug(s) && !s.equals(oldSlug)));
+        }
         log.info("Updated tag with id={}", id);
         return tagMapper.toResponse(existing);
     }

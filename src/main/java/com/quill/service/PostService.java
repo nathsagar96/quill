@@ -36,6 +36,7 @@ public class PostService {
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
     private final PostMapper postMapper;
+    private final SlugService slugService;
 
     public Page<PostResponse> findAllPosts(Pageable pageable) {
         log.debug(
@@ -61,6 +62,14 @@ public class PostService {
         return postRepository.findById(id).map(postMapper::toResponse).orElseThrow(() -> new PostNotFoundException(id));
     }
 
+    public PostResponse findPostBySlug(String slug) {
+        log.debug("Fetching post with slug='{}'", slug);
+        return postRepository
+                .findBySlug(slug)
+                .map(postMapper::toResponse)
+                .orElseThrow(() -> new PostNotFoundException("Post not found with slug: " + slug));
+    }
+
     @Transactional
     public PostResponse createPost(PostRequest request, String username) {
         log.info("Creating post: title='{}', username='{}'", request.title(), username);
@@ -68,6 +77,7 @@ public class PostService {
         Set<Category> categories = resolveCategories(request.categoryIds());
         Set<Tag> tags = resolveTags(request.tagIds());
         Post entity = postMapper.toEntity(request, author, categories, tags);
+        entity.setSlug(slugService.toUniqueSlug(request.title(), "post", postRepository::existsBySlug));
         if (entity.getExcerpt() == null || entity.getExcerpt().isBlank()) {
             entity.setExcerpt(generateExcerpt(entity.getBody()));
         }
@@ -84,8 +94,14 @@ public class PostService {
         if (!authorUsername.equals(username) && !isAdmin) {
             throw new ForbiddenOperationException("User '%s' is not the owner of post %d".formatted(username, id));
         }
+        String oldSlug = existing.getSlug();
+        String oldTitle = existing.getTitle();
         existing.setTitle(request.title());
         existing.setBody(request.body());
+        if (!oldTitle.equals(request.title())) {
+            existing.setSlug(slugService.toUniqueSlug(
+                    request.title(), "post", s -> postRepository.existsBySlug(s) && !s.equals(oldSlug)));
+        }
         existing.setCategories(resolveCategories(request.categoryIds()));
         existing.setTags(resolveTags(request.tagIds()));
         if (request.excerpt() == null || request.excerpt().isBlank()) {
