@@ -150,8 +150,7 @@ class PostRepositoryTest {
     void shouldRejectPostWithNullAuthor() {
         Post post = Post.builder().title("No author").body("Body").build();
 
-        assertThatThrownBy(() -> postRepository.saveAndFlush(post))
-                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> postRepository.saveAndFlush(post)).isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
@@ -159,8 +158,7 @@ class PostRepositoryTest {
     void shouldRejectPostWithNullTitle() {
         Post post = Post.builder().title(null).body("Body").author(author).build();
 
-        assertThatThrownBy(() -> postRepository.saveAndFlush(post))
-                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> postRepository.saveAndFlush(post)).isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test

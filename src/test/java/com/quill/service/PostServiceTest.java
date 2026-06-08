@@ -39,14 +39,19 @@ class PostServiceTest {
     private static final Long POST_ID = 10L;
     private static final Long MISSING_POST_ID = 99L;
     private static final Long AUTHOR_ID = 1L;
+
     @Mock
     private PostRepository postRepository;
+
     @Mock
     private UserRepository userRepository;
+
     @Mock
     private PostMapper postMapper;
+
     @InjectMocks
     private PostService postService;
+
     private User author;
     private Post post;
     private PostRequest request;
@@ -64,7 +69,11 @@ class PostServiceTest {
                 .updatedAt(Instant.parse("2024-01-01T00:00:00Z"))
                 .build();
         request = new PostRequest("New title", "New body", AUTHOR_ID);
-        response = new PostResponse(POST_ID, "New title", "New body", AUTHOR_ID,
+        response = new PostResponse(
+                POST_ID,
+                "New title",
+                "New body",
+                AUTHOR_ID,
                 Instant.parse("2024-01-01T00:00:00Z"),
                 Instant.parse("2024-01-01T00:00:00Z"));
     }
@@ -77,7 +86,12 @@ class PostServiceTest {
         @DisplayName("delegates to repository and maps each post via the mapper")
         void delegatesToRepositoryAndMaps() {
             var pageable = PageRequest.of(0, 10);
-            var other = Post.builder().id(11L).title("Other").body("...").author(author).build();
+            var other = Post.builder()
+                    .id(11L)
+                    .title("Other")
+                    .body("...")
+                    .author(author)
+                    .build();
             var otherResponse = new PostResponse(11L, "Other", "...", AUTHOR_ID, null, null);
             var page = new PageImpl<>(List.of(post, other), pageable, 2);
             when(postRepository.findAll(pageable)).thenReturn(page);
@@ -127,9 +141,7 @@ class PostServiceTest {
         void throwsWhenMissing() {
             when(postRepository.findById(MISSING_POST_ID)).thenReturn(Optional.empty());
 
-            var thrown = assertThrows(
-                    PostNotFoundException.class,
-                    () -> postService.findPostById(MISSING_POST_ID));
+            var thrown = assertThrows(PostNotFoundException.class, () -> postService.findPostById(MISSING_POST_ID));
             assertThat(thrown).hasMessageContaining(String.valueOf(MISSING_POST_ID));
 
             verify(postMapper, never()).toResponse(any());
@@ -161,9 +173,7 @@ class PostServiceTest {
         void throwsWhenAuthorMissing() {
             when(userRepository.findById(AUTHOR_ID)).thenReturn(Optional.empty());
 
-            var thrown = assertThrows(
-                    UserNotFoundException.class,
-                    () -> postService.createPost(request));
+            var thrown = assertThrows(UserNotFoundException.class, () -> postService.createPost(request));
             assertThat(thrown).hasMessageContaining(String.valueOf(AUTHOR_ID));
 
             verify(postRepository, never()).save(any());
@@ -194,9 +204,8 @@ class PostServiceTest {
         void throwsWhenPostMissing() {
             when(postRepository.findById(MISSING_POST_ID)).thenReturn(Optional.empty());
 
-            var thrown = assertThrows(
-                    PostNotFoundException.class,
-                    () -> postService.updatePost(MISSING_POST_ID, request));
+            var thrown =
+                    assertThrows(PostNotFoundException.class, () -> postService.updatePost(MISSING_POST_ID, request));
             assertThat(thrown).hasMessageContaining(String.valueOf(MISSING_POST_ID));
 
             verify(userRepository, never()).findById(AUTHOR_ID);
@@ -208,9 +217,7 @@ class PostServiceTest {
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(post));
             when(userRepository.findById(AUTHOR_ID)).thenReturn(Optional.empty());
 
-            var thrown = assertThrows(
-                    UserNotFoundException.class,
-                    () -> postService.updatePost(POST_ID, request));
+            var thrown = assertThrows(UserNotFoundException.class, () -> postService.updatePost(POST_ID, request));
             assertThat(thrown).hasMessageContaining(String.valueOf(AUTHOR_ID));
         }
     }
@@ -235,9 +242,7 @@ class PostServiceTest {
         void throwsWhenMissing() {
             when(postRepository.existsById(MISSING_POST_ID)).thenReturn(false);
 
-            var thrown = assertThrows(
-                    PostNotFoundException.class,
-                    () -> postService.deletePost(MISSING_POST_ID));
+            var thrown = assertThrows(PostNotFoundException.class, () -> postService.deletePost(MISSING_POST_ID));
             assertThat(thrown).hasMessageContaining(String.valueOf(MISSING_POST_ID));
 
             verify(postRepository, never()).deleteById(MISSING_POST_ID);
