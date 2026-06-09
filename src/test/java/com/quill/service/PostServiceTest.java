@@ -330,7 +330,7 @@ class PostServiceTest {
             when(slugService.toUniqueSlug(eq("New title"), eq("post"), any())).thenReturn("new-title");
             when(postMapper.toResponse(post)).thenReturn(response);
 
-            PostResponse result = postService.updatePost(POST_ID, request, USERNAME, false);
+            PostResponse result = postService.updatePost(POST_ID, request, USERNAME);
 
             assertThat(result).isEqualTo(response);
             assertThat(post.getTitle()).isEqualTo(request.title());
@@ -341,29 +341,12 @@ class PostServiceTest {
         }
 
         @Test
-        @DisplayName("allows an admin to update any post")
-        void adminCanUpdate() {
-            when(postRepository.findById(POST_ID)).thenReturn(Optional.of(post));
-            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
-            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
-            when(slugService.toUniqueSlug(eq("New title"), eq("post"), any())).thenReturn("new-title");
-            when(postMapper.toResponse(post)).thenReturn(response);
-
-            PostResponse result = postService.updatePost(POST_ID, request, "other", true);
-
-            assertThat(result).isEqualTo(response);
-            assertThat(post.getTitle()).isEqualTo(request.title());
-            assertThat(post.getBody()).isEqualTo(request.body());
-            assertThat(post.getSlug()).isEqualTo("new-title");
-        }
-
-        @Test
-        @DisplayName("throws ForbiddenOperationException when a non-owner non-admin tries to update")
+        @DisplayName("throws ForbiddenOperationException when a non-owner tries to update")
         void throwsWhenNotOwner() {
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(post));
 
             var thrown = assertThrows(
-                    ForbiddenOperationException.class, () -> postService.updatePost(POST_ID, request, "other", false));
+                    ForbiddenOperationException.class, () -> postService.updatePost(POST_ID, request, "other"));
             assertThat(thrown).hasMessageContaining("other").hasMessageContaining(String.valueOf(POST_ID));
         }
 
@@ -373,8 +356,7 @@ class PostServiceTest {
             when(postRepository.findById(MISSING_POST_ID)).thenReturn(Optional.empty());
 
             var thrown = assertThrows(
-                    PostNotFoundException.class,
-                    () -> postService.updatePost(MISSING_POST_ID, request, USERNAME, false));
+                    PostNotFoundException.class, () -> postService.updatePost(MISSING_POST_ID, request, USERNAME));
             assertThat(thrown).hasMessageContaining(String.valueOf(MISSING_POST_ID));
         }
     }

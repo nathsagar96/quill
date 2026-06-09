@@ -253,7 +253,7 @@ class PostControllerTest {
         @Test
         @WithMockUser(username = USERNAME)
         void updatesAndReturns200() {
-            when(postService.updatePost(POST_ID, request, USERNAME, false)).thenReturn(response);
+            when(postService.updatePost(POST_ID, request, USERNAME)).thenReturn(response);
 
             assertThat(mockMvc.put()
                             .uri("/api/posts/{id}", POST_ID)
@@ -264,14 +264,13 @@ class PostControllerTest {
                     .extractingPath("$.id")
                     .asNumber()
                     .isEqualTo(10);
-            verify(postService).updatePost(eq(POST_ID), any(PostRequest.class), eq(USERNAME), eq(false));
+            verify(postService).updatePost(eq(POST_ID), any(PostRequest.class), eq(USERNAME));
         }
 
         @Test
         @WithMockUser(username = USERNAME)
         void returns404WhenNotFound() {
-            when(postService.updatePost(POST_ID, request, USERNAME, false))
-                    .thenThrow(new PostNotFoundException(POST_ID));
+            when(postService.updatePost(POST_ID, request, USERNAME)).thenThrow(new PostNotFoundException(POST_ID));
 
             assertThat(mockMvc.put()
                             .uri("/api/posts/{id}", POST_ID)

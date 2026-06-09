@@ -87,11 +87,11 @@ public class PostService {
     }
 
     @Transactional
-    public PostResponse updatePost(Long id, PostRequest request, String username, boolean isAdmin) {
+    public PostResponse updatePost(Long id, PostRequest request, String username) {
         log.info("Updating post with id={}", id);
         Post existing = postRepository.findById(id).orElseThrow(() -> new PostNotFoundException(id));
         String authorUsername = existing.getAuthor().getUsername();
-        if (!authorUsername.equals(username) && !isAdmin) {
+        if (!authorUsername.equals(username)) {
             throw new ForbiddenOperationException("User '%s' is not the owner of post %d".formatted(username, id));
         }
         String oldSlug = existing.getSlug();

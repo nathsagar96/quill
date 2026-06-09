@@ -66,10 +66,7 @@ public class PostController {
     @PutMapping("/{id}")
     public ResponseEntity<PostResponse> updatePost(
             @Min(1) @PathVariable Long id, @Valid @RequestBody PostRequest request, Authentication authentication) {
-        String username = authentication.getName();
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        PostResponse response = postService.updatePost(id, request, username, isAdmin);
+        PostResponse response = postService.updatePost(id, request, authentication.getName());
         return ResponseEntity.ok(response);
     }
 
