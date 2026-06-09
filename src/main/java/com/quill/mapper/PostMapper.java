@@ -5,6 +5,7 @@ import com.quill.dto.response.AuthorResponse;
 import com.quill.dto.response.PostResponse;
 import com.quill.model.Category;
 import com.quill.model.Post;
+import com.quill.model.PostStatus;
 import com.quill.model.Tag;
 import com.quill.model.User;
 import java.util.Set;
@@ -24,6 +25,9 @@ public class PostMapper {
                 toAuthorResponse(entity.getAuthor()),
                 entity.getCategories().stream().map(Category::getId).collect(Collectors.toSet()),
                 entity.getTags().stream().map(Tag::getId).collect(Collectors.toSet()),
+                entity.getStatus(),
+                entity.getPublishedAt(),
+                entity.getScheduledAt(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }
@@ -34,6 +38,7 @@ public class PostMapper {
     }
 
     public Post toEntity(PostRequest request, User author, Set<Category> categories, Set<Tag> tags) {
+        PostStatus status = request.status() != null ? request.status() : PostStatus.DRAFT;
         return Post.builder()
                 .title(request.title())
                 .body(request.body())
@@ -41,6 +46,8 @@ public class PostMapper {
                 .author(author)
                 .categories(categories)
                 .tags(tags)
+                .status(status)
+                .scheduledAt(request.scheduledAt())
                 .build();
     }
 }

@@ -10,12 +10,14 @@ import com.quill.exception.UserNotFoundException;
 import com.quill.mapper.PostMapper;
 import com.quill.model.Category;
 import com.quill.model.Post;
+import com.quill.model.PostStatus;
 import com.quill.model.Tag;
 import com.quill.model.User;
 import com.quill.repository.CategoryRepository;
 import com.quill.repository.PostRepository;
 import com.quill.repository.TagRepository;
 import com.quill.repository.UserRepository;
+import java.time.Instant;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -40,34 +42,58 @@ public class PostService {
 
     public Page<PostResponse> findAllPosts(Pageable pageable) {
         log.debug(
-                "Fetching posts page: page={}, size={}, sort={}",
+                "Fetching published posts page: page={}, size={}, sort={}",
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
                 pageable.getSort());
-        return postRepository.findAll(pageable).map(postMapper::toResponse);
+        return postRepository.findByStatus(PostStatus.PUBLISHED, pageable).map(postMapper::toResponse);
     }
 
     public Page<PostResponse> findPostsByCategoryId(Long categoryId, Pageable pageable) {
-        log.debug("Fetching posts by category id={}, page={}", categoryId, pageable.getPageNumber());
-        return postRepository.findByCategoriesId(categoryId, pageable).map(postMapper::toResponse);
+        log.debug("Fetching published posts by category id={}, page={}", categoryId, pageable.getPageNumber());
+        return postRepository
+                .findByStatusAndCategoriesId(PostStatus.PUBLISHED, categoryId, pageable)
+                .map(postMapper::toResponse);
     }
 
     public Page<PostResponse> findPostsByTagId(Long tagId, Pageable pageable) {
-        log.debug("Fetching posts by tag id={}, page={}", tagId, pageable.getPageNumber());
-        return postRepository.findByTagsId(tagId, pageable).map(postMapper::toResponse);
-    }
-
-    public PostResponse findPostById(Long id) {
-        log.debug("Fetching post with id={}", id);
-        return postRepository.findById(id).map(postMapper::toResponse).orElseThrow(() -> new PostNotFoundException(id));
-    }
-
-    public PostResponse findPostBySlug(String slug) {
-        log.debug("Fetching post with slug='{}'", slug);
+        log.debug("Fetching published posts by tag id={}, page={}", tagId, pageable.getPageNumber());
         return postRepository
+                .findByStatusAndTagsId(PostStatus.PUBLISHED, tagId, pageable)
+                .map(postMapper::toResponse);
+    }
+
+    public Page<PostResponse> findPostsByStatus(
+            PostStatus status, Long categoryId, Long tagId, Pageable pageable, String username) {
+        log.debug("Fetching posts by status={}, username={}", status, username);
+        User author = findUserByUsername(username);
+        if (categoryId != null) {
+            return postRepository
+                    .findByAuthorIdAndStatusAndCategoriesId(author.getId(), status, categoryId, pageable)
+                    .map(postMapper::toResponse);
+        }
+        if (tagId != null) {
+            return postRepository
+                    .findByAuthorIdAndStatusAndTagsId(author.getId(), status, tagId, pageable)
+                    .map(postMapper::toResponse);
+        }
+        return postRepository
+                .findByAuthorIdAndStatus(author.getId(), status, pageable)
+                .map(postMapper::toResponse);
+    }
+
+    public PostResponse findPostById(Long id, String username) {
+        log.debug("Fetching post with id={}", id);
+        Post post = postRepository.findById(id).orElseThrow(() -> new PostNotFoundException(id));
+        return checkPostVisibility(post, username);
+    }
+
+    public PostResponse findPostBySlug(String slug, String username) {
+        log.debug("Fetching post with slug='{}'", slug);
+        Post post = postRepository
                 .findBySlug(slug)
-                .map(postMapper::toResponse)
                 .orElseThrow(() -> new PostNotFoundException("Post not found with slug: " + slug));
+        return checkPostVisibility(post, username);
     }
 
     @Transactional
@@ -81,8 +107,9 @@ public class PostService {
         if (entity.getExcerpt() == null || entity.getExcerpt().isBlank()) {
             entity.setExcerpt(generateExcerpt(entity.getBody()));
         }
+        applyStatus(entity, request.scheduledAt());
         Post saved = postRepository.save(entity);
-        log.info("Created post with id={}", saved.getId());
+        log.info("Created post with id={}, status={}", saved.getId(), saved.getStatus());
         return postMapper.toResponse(saved);
     }
 
@@ -109,7 +136,8 @@ public class PostService {
         } else {
             existing.setExcerpt(request.excerpt());
         }
-        log.info("Updated post with id={}", id);
+        applyStatusUpdate(existing, request.status(), request.scheduledAt());
+        log.info("Updated post with id={}, status={}", id, existing.getStatus());
         return postMapper.toResponse(existing);
     }
 
@@ -121,6 +149,62 @@ public class PostService {
         }
         postRepository.deleteById(id);
         log.info("Deleted post with id={}", id);
+    }
+
+    private PostResponse checkPostVisibility(Post post, String username) {
+        if (post.getStatus() == PostStatus.PUBLISHED) {
+            return postMapper.toResponse(post);
+        }
+        if (post.getAuthor().getUsername().equals(username)) {
+            return postMapper.toResponse(post);
+        }
+        throw new PostNotFoundException(post.getId());
+    }
+
+    private void applyStatus(Post entity, Instant scheduledAt) {
+        if (entity.getStatus() == PostStatus.SCHEDULED) {
+            if (scheduledAt == null) {
+                throw new ForbiddenOperationException("scheduledAt is required when status is SCHEDULED");
+            }
+            if (scheduledAt.isBefore(Instant.now())) {
+                throw new ForbiddenOperationException("scheduledAt must be in the future");
+            }
+            entity.setScheduledAt(scheduledAt);
+        } else if (entity.getStatus() == PostStatus.PUBLISHED) {
+            entity.setPublishedAt(Instant.now());
+            entity.setScheduledAt(null);
+        }
+    }
+
+    private void applyStatusUpdate(Post existing, PostStatus newStatus, Instant newScheduledAt) {
+        if (newStatus == null) {
+            return;
+        }
+        switch (newStatus) {
+            case DRAFT -> {
+                existing.setStatus(PostStatus.DRAFT);
+                existing.setPublishedAt(null);
+                existing.setScheduledAt(null);
+            }
+            case SCHEDULED -> {
+                if (newScheduledAt == null) {
+                    throw new ForbiddenOperationException("scheduledAt is required when status is SCHEDULED");
+                }
+                if (newScheduledAt.isBefore(Instant.now())) {
+                    throw new ForbiddenOperationException("scheduledAt must be in the future");
+                }
+                existing.setStatus(PostStatus.SCHEDULED);
+                existing.setScheduledAt(newScheduledAt);
+                existing.setPublishedAt(null);
+            }
+            case PUBLISHED -> {
+                existing.setStatus(PostStatus.PUBLISHED);
+                if (existing.getPublishedAt() == null) {
+                    existing.setPublishedAt(Instant.now());
+                }
+                existing.setScheduledAt(null);
+            }
+        }
     }
 
     private User findUserByUsername(String username) {

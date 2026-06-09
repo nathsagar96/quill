@@ -2,6 +2,7 @@ package com.quill.controller;
 
 import com.quill.dto.request.PostRequest;
 import com.quill.dto.response.PostResponse;
+import com.quill.model.PostStatus;
 import com.quill.service.PostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -43,20 +44,26 @@ public class PostController {
     @GetMapping
     @Operation(
             summary = "List posts",
-            description = "Returns a paginated list of posts sorted by creation date descending. "
-                    + "Optionally filter by category ID or tag ID.")
-    @ApiResponse(
-            responseCode = "200",
-            description = "Paginated list of posts",
-            useReturnTypeSchema = true)
+            description = "Returns a paginated list of published posts. "
+                    + "Optionally filter by category ID or tag ID, or by status for the authenticated user.")
+    @ApiResponse(responseCode = "200", description = "Paginated list of posts", useReturnTypeSchema = true)
     public ResponseEntity<Page<PostResponse>> findAllPosts(
-            @Parameter(description = "Filter by category ID", example = "1")
-            @RequestParam(required = false) Long categoryId,
-            @Parameter(description = "Filter by tag ID", example = "1")
-            @RequestParam(required = false) Long tagId,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
-            @Parameter(hidden = true)
-            Pageable pageable) {
+            @Parameter(description = "Filter by category ID", example = "1") @RequestParam(required = false)
+                    Long categoryId,
+            @Parameter(description = "Filter by tag ID", example = "1") @RequestParam(required = false) Long tagId,
+            @Parameter(description = "Filter by post status (requires authentication, scoped to own posts)")
+                    @RequestParam(required = false)
+                    PostStatus status,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) @Parameter(hidden = true)
+                    Pageable pageable,
+            Authentication authentication) {
+        if (status != null) {
+            String username = authentication != null ? authentication.getName() : null;
+            if (username == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            return ResponseEntity.ok(postService.findPostsByStatus(status, categoryId, tagId, pageable, username));
+        }
         if (categoryId != null) {
             return ResponseEntity.ok(postService.findPostsByCategoryId(categoryId, pageable));
         }
@@ -67,29 +74,37 @@ public class PostController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get post by ID", description = "Returns a single post by its unique identifier.")
+    @Operation(
+            summary = "Get post by ID",
+            description = "Returns a single post by its unique identifier. "
+                    + "Non-published posts are only visible to their author.")
     @ApiResponse(responseCode = "200", description = "Post found", useReturnTypeSchema = true)
     @ApiResponse(
             responseCode = "404",
             description = "Post not found",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<PostResponse> findPostById(
-            @Parameter(description = "Post ID", example = "1", required = true)
-            @Min(1) @PathVariable Long id) {
-        return ResponseEntity.ok(postService.findPostById(id));
+            @Parameter(description = "Post ID", example = "1", required = true) @Min(1) @PathVariable Long id,
+            Authentication authentication) {
+        String username = authentication != null ? authentication.getName() : null;
+        return ResponseEntity.ok(postService.findPostById(id, username));
     }
 
     @GetMapping("/slug/{slug}")
-    @Operation(summary = "Get post by slug", description = "Returns a single post by its URL-friendly slug.")
+    @Operation(
+            summary = "Get post by slug",
+            description = "Returns a single post by its URL-friendly slug. "
+                    + "Non-published posts are only visible to their author.")
     @ApiResponse(responseCode = "200", description = "Post found", useReturnTypeSchema = true)
     @ApiResponse(
             responseCode = "404",
             description = "Post not found",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<PostResponse> findPostBySlug(
-            @Parameter(description = "Post slug", example = "my-first-post", required = true)
-            @PathVariable String slug) {
-        return ResponseEntity.ok(postService.findPostBySlug(slug));
+            @Parameter(description = "Post slug", example = "my-first-post", required = true) @PathVariable String slug,
+            Authentication authentication) {
+        String username = authentication != null ? authentication.getName() : null;
+        return ResponseEntity.ok(postService.findPostBySlug(slug, username));
     }
 
     @PostMapping
@@ -115,8 +130,7 @@ public class PostController {
     @PutMapping("/{id}")
     @Operation(
             summary = "Update a post",
-            description = "Updates an existing post. Only the author can update. "
-                    + "Requires authentication.")
+            description = "Updates an existing post. Only the author can update. " + "Requires authentication.")
     @ApiResponse(responseCode = "200", description = "Post updated", useReturnTypeSchema = true)
     @ApiResponse(
             responseCode = "400",
@@ -135,8 +149,7 @@ public class PostController {
             description = "Post not found",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<PostResponse> updatePost(
-            @Parameter(description = "Post ID", example = "1", required = true)
-            @Min(1) @PathVariable Long id,
+            @Parameter(description = "Post ID", example = "1", required = true) @Min(1) @PathVariable Long id,
             @Valid @RequestBody PostRequest request,
             Authentication authentication) {
         PostResponse response = postService.updatePost(id, request, authentication.getName());
@@ -144,9 +157,7 @@ public class PostController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(
-            summary = "Delete a post",
-            description = "Deletes a post by ID. Requires admin role.")
+    @Operation(summary = "Delete a post", description = "Deletes a post by ID. Requires admin role.")
     @ApiResponse(responseCode = "204", description = "Post deleted")
     @ApiResponse(
             responseCode = "401",
@@ -161,8 +172,7 @@ public class PostController {
             description = "Post not found",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<Void> deletePost(
-            @Parameter(description = "Post ID", example = "1", required = true)
-            @Min(1) @PathVariable Long id) {
+            @Parameter(description = "Post ID", example = "1", required = true) @Min(1) @PathVariable Long id) {
         postService.deletePost(id);
         return ResponseEntity.noContent().build();
     }

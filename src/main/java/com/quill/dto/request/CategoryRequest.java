@@ -5,5 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record CategoryRequest(
-        @NotBlank @Size(max = 100) @Schema(example = "Technology") String name,
-        @Size(max = 1000) @Schema(example = "Posts about technology and software") String description) {}
+        @NotBlank @Size(max = 100) @Schema(example = "Technology")
+        String name,
+
+        @Size(max = 1000) @Schema(example = "Posts about technology and software")
+        String description) {}

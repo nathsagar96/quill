@@ -50,11 +50,9 @@ public class CommentController {
             description = "Post not found",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<Page<CommentResponse>> findAllCommentsByPostId(
-            @Parameter(description = "Post ID", example = "1", required = true)
-            @Min(1) @PathVariable Long postId,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
-            @Parameter(hidden = true)
-            Pageable pageable) {
+            @Parameter(description = "Post ID", example = "1", required = true) @Min(1) @PathVariable Long postId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) @Parameter(hidden = true)
+                    Pageable pageable) {
         return ResponseEntity.ok(commentService.findAllCommentsByPostId(postId, pageable));
     }
 
@@ -76,8 +74,7 @@ public class CommentController {
             description = "Post not found",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<CommentResponse> createComment(
-            @Parameter(description = "Post ID", example = "1", required = true)
-            @Min(1) @PathVariable Long postId,
+            @Parameter(description = "Post ID", example = "1", required = true) @Min(1) @PathVariable Long postId,
             @Valid @RequestBody CommentRequest request,
             Authentication authentication) {
         CommentResponse response = commentService.createComment(request, postId, authentication.getName());
@@ -87,8 +84,7 @@ public class CommentController {
     @PutMapping("/{id}")
     @Operation(
             summary = "Update a comment",
-            description = "Updates an existing comment. Only the author can update. "
-                    + "Requires authentication.")
+            description = "Updates an existing comment. Only the author can update. " + "Requires authentication.")
     @ApiResponse(responseCode = "200", description = "Comment updated", useReturnTypeSchema = true)
     @ApiResponse(
             responseCode = "400",
@@ -107,10 +103,8 @@ public class CommentController {
             description = "Comment not found",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<CommentResponse> updateComment(
-            @Parameter(description = "Post ID", example = "1", required = true)
-            @Min(1) @PathVariable Long postId,
-            @Parameter(description = "Comment ID", example = "1", required = true)
-            @Min(1) @PathVariable Long id,
+            @Parameter(description = "Post ID", example = "1", required = true) @Min(1) @PathVariable Long postId,
+            @Parameter(description = "Comment ID", example = "1", required = true) @Min(1) @PathVariable Long id,
             @Valid @RequestBody CommentRequest request,
             Authentication authentication) {
         CommentResponse response = commentService.updateComment(postId, id, request, authentication.getName());
@@ -118,9 +112,7 @@ public class CommentController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(
-            summary = "Delete a comment",
-            description = "Deletes a comment by ID. Requires admin role.")
+    @Operation(summary = "Delete a comment", description = "Deletes a comment by ID. Requires admin role.")
     @ApiResponse(responseCode = "204", description = "Comment deleted")
     @ApiResponse(
             responseCode = "401",
@@ -135,10 +127,8 @@ public class CommentController {
             description = "Comment not found",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<Void> deleteComment(
-            @Parameter(description = "Post ID", example = "1", required = true)
-            @Min(1) @PathVariable Long postId,
-            @Parameter(description = "Comment ID", example = "1", required = true)
-            @Min(1) @PathVariable Long id) {
+            @Parameter(description = "Post ID", example = "1", required = true) @Min(1) @PathVariable Long postId,
+            @Parameter(description = "Comment ID", example = "1", required = true) @Min(1) @PathVariable Long id) {
         commentService.deleteComment(postId, id);
         return ResponseEntity.noContent().build();
     }

@@ -8,6 +8,7 @@ import com.quill.config.JpaConfig;
 import com.quill.model.Category;
 import com.quill.model.Comment;
 import com.quill.model.Post;
+import com.quill.model.PostStatus;
 import com.quill.model.Tag;
 import com.quill.model.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -253,7 +254,8 @@ class PostRepositoryTest {
         post.getCategories().add(category);
         postRepository.saveAndFlush(post);
 
-        Page<Post> result = postRepository.findByCategoriesId(category.getId(), PageRequest.of(0, 10));
+        Page<Post> result =
+                postRepository.findByStatusAndCategoriesId(PostStatus.DRAFT, category.getId(), PageRequest.of(0, 10));
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().getFirst().getTitle()).isEqualTo("Tech Post");
@@ -262,7 +264,7 @@ class PostRepositoryTest {
     @Test
     @DisplayName("should return empty page when no posts match category id")
     void shouldReturnEmptyWhenNoPostsMatchCategory() {
-        Page<Post> result = postRepository.findByCategoriesId(999L, PageRequest.of(0, 10));
+        Page<Post> result = postRepository.findByStatusAndCategoriesId(PostStatus.DRAFT, 999L, PageRequest.of(0, 10));
 
         assertThat(result.getContent()).isEmpty();
     }
@@ -281,7 +283,7 @@ class PostRepositoryTest {
         post.getTags().add(tag);
         postRepository.saveAndFlush(post);
 
-        Page<Post> result = postRepository.findByTagsId(tag.getId(), PageRequest.of(0, 10));
+        Page<Post> result = postRepository.findByStatusAndTagsId(PostStatus.DRAFT, tag.getId(), PageRequest.of(0, 10));
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().getFirst().getTitle()).isEqualTo("Java Post");
@@ -290,7 +292,7 @@ class PostRepositoryTest {
     @Test
     @DisplayName("should return empty page when no posts match tag id")
     void shouldReturnEmptyWhenNoPostsMatchTag() {
-        Page<Post> result = postRepository.findByTagsId(999L, PageRequest.of(0, 10));
+        Page<Post> result = postRepository.findByStatusAndTagsId(PostStatus.DRAFT, 999L, PageRequest.of(0, 10));
 
         assertThat(result.getContent()).isEmpty();
     }

@@ -43,8 +43,8 @@ public class UserController {
     @PutMapping("/me")
     @Operation(
             summary = "Update current user profile",
-            description = "Updates the profile of the currently authenticated user. "
-                    + "Only provided fields are updated.")
+            description =
+                    "Updates the profile of the currently authenticated user. " + "Only provided fields are updated.")
     @ApiResponse(responseCode = "200", description = "Profile updated", useReturnTypeSchema = true)
     @ApiResponse(
             responseCode = "400",

@@ -4,6 +4,8 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -79,6 +81,17 @@ public class Post {
     @OrderBy("createdAt DESC")
     @Builder.Default
     private List<Comment> comments = new ArrayList<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    @Builder.Default
+    private PostStatus status = PostStatus.DRAFT;
+
+    @Column(name = "published_at")
+    private Instant publishedAt;
+
+    @Column(name = "scheduled_at")
+    private Instant scheduledAt;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

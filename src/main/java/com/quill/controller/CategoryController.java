@@ -36,7 +36,9 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @GetMapping
-    @Operation(summary = "List all categories", description = "Returns all categories. Does not require authentication.")
+    @Operation(
+            summary = "List all categories",
+            description = "Returns all categories. Does not require authentication.")
     @ApiResponse(responseCode = "200", description = "List of categories", useReturnTypeSchema = true)
     public ResponseEntity<List<CategoryResponse>> findAllCategories() {
         return ResponseEntity.ok(categoryService.findAllCategories());
@@ -50,8 +52,7 @@ public class CategoryController {
             description = "Category not found",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<CategoryResponse> findCategoryById(
-            @Parameter(description = "Category ID", example = "1", required = true)
-            @Min(1) @PathVariable Long id) {
+            @Parameter(description = "Category ID", example = "1", required = true) @Min(1) @PathVariable Long id) {
         return ResponseEntity.ok(categoryService.findCategoryById(id));
     }
 
@@ -86,16 +87,13 @@ public class CategoryController {
             description = "Category not found",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<CategoryResponse> updateCategory(
-            @Parameter(description = "Category ID", example = "1", required = true)
-            @Min(1) @PathVariable Long id,
+            @Parameter(description = "Category ID", example = "1", required = true) @Min(1) @PathVariable Long id,
             @Valid @RequestBody CategoryRequest request) {
         return ResponseEntity.ok(categoryService.updateCategory(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(
-            summary = "Delete a category",
-            description = "Deletes a category by ID. Requires admin role.")
+    @Operation(summary = "Delete a category", description = "Deletes a category by ID. Requires admin role.")
     @ApiResponse(responseCode = "204", description = "Category deleted")
     @ApiResponse(
             responseCode = "401",
@@ -110,8 +108,7 @@ public class CategoryController {
             description = "Category not found",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<Void> deleteCategory(
-            @Parameter(description = "Category ID", example = "1", required = true)
-            @Min(1) @PathVariable Long id) {
+            @Parameter(description = "Category ID", example = "1", required = true) @Min(1) @PathVariable Long id) {
         categoryService.deleteCategory(id);
         return ResponseEntity.noContent().build();
     }

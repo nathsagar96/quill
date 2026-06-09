@@ -12,6 +12,7 @@ import com.quill.dto.request.PostRequest;
 import com.quill.dto.response.AuthorResponse;
 import com.quill.dto.response.PostResponse;
 import com.quill.exception.PostNotFoundException;
+import com.quill.model.PostStatus;
 import com.quill.service.PostService;
 import java.time.Instant;
 import java.util.List;
@@ -43,6 +44,7 @@ class PostControllerTest {
     private static final long CATEGORY_ID = 5L;
     private static final long TAG_ID = 7L;
     private static final String USERNAME = "alice";
+    private final Instant now = Instant.parse("2024-01-01T00:00:00Z");
     private final PostResponse response = new PostResponse(
             POST_ID,
             "Title",
@@ -52,9 +54,13 @@ class PostControllerTest {
             new AuthorResponse(AUTHOR_ID, null, null, null, null),
             Set.of(CATEGORY_ID),
             Set.of(TAG_ID),
-            Instant.parse("2024-01-01T00:00:00Z"),
-            Instant.parse("2024-01-01T00:00:00Z"));
-    private final PostRequest request = new PostRequest("Title", "Body", null, Set.of(CATEGORY_ID), Set.of(TAG_ID));
+            PostStatus.PUBLISHED,
+            null,
+            null,
+            now,
+            now);
+    private final PostRequest request =
+            new PostRequest("Title", "Body", null, Set.of(CATEGORY_ID), Set.of(TAG_ID), null, null);
 
     @Autowired
     private MockMvcTester mockMvc;
@@ -136,6 +142,28 @@ class PostControllerTest {
                     .hasSize(1);
             verify(postService).findPostsByTagId(TAG_ID, pageable);
         }
+
+        @Test
+        @WithMockUser(username = USERNAME)
+        void filtersByStatus() {
+            var pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
+            Page<PostResponse> page = new PageImpl<>(List.of(response), pageable, 1);
+            when(postService.findPostsByStatus(PostStatus.DRAFT, null, null, pageable, USERNAME))
+                    .thenReturn(page);
+
+            assertThat(mockMvc.get().uri("/api/posts?status=DRAFT"))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.content")
+                    .asArray()
+                    .hasSize(1);
+            verify(postService).findPostsByStatus(PostStatus.DRAFT, null, null, pageable, USERNAME);
+        }
+
+        @Test
+        void statusFilterReturns401WhenAnonymous() {
+            assertThat(mockMvc.get().uri("/api/posts?status=DRAFT")).hasStatus(HttpStatus.UNAUTHORIZED);
+        }
     }
 
     @Nested
@@ -143,9 +171,9 @@ class PostControllerTest {
     class FindPostById {
 
         @Test
-        @WithMockUser
+        @WithMockUser(username = USERNAME)
         void returnsPostWhenFound() {
-            when(postService.findPostById(POST_ID)).thenReturn(response);
+            when(postService.findPostById(POST_ID, USERNAME)).thenReturn(response);
 
             assertThat(mockMvc.get().uri("/api/posts/{id}", POST_ID))
                     .hasStatusOk()
@@ -153,20 +181,23 @@ class PostControllerTest {
                     .extractingPath("$.id")
                     .asNumber()
                     .isEqualTo(10);
-            verify(postService).findPostById(POST_ID);
+            verify(postService).findPostById(POST_ID, USERNAME);
         }
 
         @Test
-        @WithMockUser
+        @WithMockUser(username = USERNAME)
         void returns404WhenNotFound() {
-            when(postService.findPostById(POST_ID)).thenThrow(new PostNotFoundException(POST_ID));
+            when(postService.findPostById(POST_ID, USERNAME)).thenThrow(new PostNotFoundException(POST_ID));
 
             assertThat(mockMvc.get().uri("/api/posts/{id}", POST_ID)).hasStatus(HttpStatus.NOT_FOUND);
         }
 
         @Test
         void allowsAnonymousAccess() {
+            when(postService.findPostById(eq(POST_ID), any())).thenReturn(response);
+
             assertThat(mockMvc.get().uri("/api/posts/{id}", POST_ID)).hasStatusOk();
+            verify(postService).findPostById(eq(POST_ID), any());
         }
     }
 
@@ -177,9 +208,9 @@ class PostControllerTest {
         private static final String SLUG = "my-post";
 
         @Test
-        @WithMockUser
+        @WithMockUser(username = USERNAME)
         void returnsPostWhenFound() {
-            when(postService.findPostBySlug(SLUG)).thenReturn(response);
+            when(postService.findPostBySlug(SLUG, USERNAME)).thenReturn(response);
 
             assertThat(mockMvc.get().uri("/api/posts/slug/{slug}", SLUG))
                     .hasStatusOk()
@@ -187,20 +218,23 @@ class PostControllerTest {
                     .extractingPath("$.id")
                     .asNumber()
                     .isEqualTo(10);
-            verify(postService).findPostBySlug(SLUG);
+            verify(postService).findPostBySlug(SLUG, USERNAME);
         }
 
         @Test
-        @WithMockUser
+        @WithMockUser(username = USERNAME)
         void returns404WhenNotFound() {
-            when(postService.findPostBySlug(SLUG)).thenThrow(new PostNotFoundException("not found"));
+            when(postService.findPostBySlug(SLUG, USERNAME)).thenThrow(new PostNotFoundException("not found"));
 
             assertThat(mockMvc.get().uri("/api/posts/slug/{slug}", SLUG)).hasStatus(HttpStatus.NOT_FOUND);
         }
 
         @Test
         void allowsAnonymousAccess() {
+            when(postService.findPostBySlug(eq(SLUG), any())).thenReturn(response);
+
             assertThat(mockMvc.get().uri("/api/posts/slug/{slug}", SLUG)).hasStatusOk();
+            verify(postService).findPostBySlug(eq(SLUG), any());
         }
     }
 
@@ -241,7 +275,7 @@ class PostControllerTest {
                             .uri("/api/posts")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonMapper.writeValueAsString(
-                                    new PostRequest("Title", "Body", null, Set.of(CATEGORY_ID), null))))
+                                    new PostRequest("Title", "Body", null, Set.of(CATEGORY_ID), null, null, null))))
                     .hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }
@@ -285,7 +319,7 @@ class PostControllerTest {
                             .uri("/api/posts/{id}", POST_ID)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonMapper.writeValueAsString(
-                                    new PostRequest("Title", "Body", null, Set.of(CATEGORY_ID), null))))
+                                    new PostRequest("Title", "Body", null, Set.of(CATEGORY_ID), null, null, null))))
                     .hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }

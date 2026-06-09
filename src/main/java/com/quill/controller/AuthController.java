@@ -27,7 +27,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@Tag(name = "Authentication", description = "User registration, login, token refresh, password reset, and email verification")
+@Tag(
+        name = "Authentication",
+        description = "User registration, login, token refresh, password reset, and email verification")
 public class AuthController {
 
     private final AuthService authService;
@@ -78,8 +80,8 @@ public class AuthController {
     @PostMapping("/reset-password")
     @Operation(
             summary = "Reset password with token",
-            description = "Resets the password using the token received via email. "
-                    + "Does not require authentication.",
+            description =
+                    "Resets the password using the token received via email. " + "Does not require authentication.",
             security = {})
     @ApiResponse(responseCode = "200", description = "Password reset successfully")
     @ApiResponse(

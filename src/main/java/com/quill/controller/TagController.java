@@ -50,8 +50,7 @@ public class TagController {
             description = "Tag not found",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<TagResponse> findTagById(
-            @Parameter(description = "Tag ID", example = "1", required = true)
-            @Min(1) @PathVariable Long id) {
+            @Parameter(description = "Tag ID", example = "1", required = true) @Min(1) @PathVariable Long id) {
         return ResponseEntity.ok(tagService.findTagById(id));
     }
 
@@ -86,16 +85,13 @@ public class TagController {
             description = "Tag not found",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<TagResponse> updateTag(
-            @Parameter(description = "Tag ID", example = "1", required = true)
-            @Min(1) @PathVariable Long id,
+            @Parameter(description = "Tag ID", example = "1", required = true) @Min(1) @PathVariable Long id,
             @Valid @RequestBody TagRequest request) {
         return ResponseEntity.ok(tagService.updateTag(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(
-            summary = "Delete a tag",
-            description = "Deletes a tag by ID. Requires admin role.")
+    @Operation(summary = "Delete a tag", description = "Deletes a tag by ID. Requires admin role.")
     @ApiResponse(responseCode = "204", description = "Tag deleted")
     @ApiResponse(
             responseCode = "401",
@@ -110,8 +106,7 @@ public class TagController {
             description = "Tag not found",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<Void> deleteTag(
-            @Parameter(description = "Tag ID", example = "1", required = true)
-            @Min(1) @PathVariable Long id) {
+            @Parameter(description = "Tag ID", example = "1", required = true) @Min(1) @PathVariable Long id) {
         tagService.deleteTag(id);
         return ResponseEntity.noContent().build();
     }

@@ -6,6 +6,7 @@ import com.quill.dto.request.PostRequest;
 import com.quill.dto.response.PostResponse;
 import com.quill.model.Category;
 import com.quill.model.Post;
+import com.quill.model.PostStatus;
 import com.quill.model.Tag;
 import com.quill.model.User;
 import java.time.Instant;
@@ -56,6 +57,9 @@ class PostMapperTest {
             assertThat(response.author().avatarUrl()).isNull();
             assertThat(response.categoryIds()).containsExactly(1L);
             assertThat(response.tagIds()).containsExactly(2L);
+            assertThat(response.status()).isEqualTo(PostStatus.DRAFT);
+            assertThat(response.publishedAt()).isNull();
+            assertThat(response.scheduledAt()).isNull();
             assertThat(response.createdAt()).isEqualTo(created);
             assertThat(response.updatedAt()).isEqualTo(updated);
         }
@@ -68,7 +72,7 @@ class PostMapperTest {
         @Test
         @DisplayName("sets all fields from the request and supplied entities")
         void setsAllFields() {
-            PostRequest request = new PostRequest("Title", "Body", null, Set.of(1L), Set.of(2L));
+            PostRequest request = new PostRequest("Title", "Body", null, Set.of(1L), Set.of(2L), null, null);
             User author = User.builder().id(1L).build();
             var cat = Category.builder().id(1L).name("Tech").build();
             var tag = Tag.builder().id(2L).name("java").build();
@@ -81,12 +85,13 @@ class PostMapperTest {
             assertThat(entity.getAuthor()).isSameAs(author);
             assertThat(entity.getCategories()).containsExactly(cat);
             assertThat(entity.getTags()).containsExactly(tag);
+            assertThat(entity.getStatus()).isEqualTo(PostStatus.DRAFT);
         }
 
         @Test
         @DisplayName("leaves id, audit fields, and comments to JPA")
         void doesNotSetPersistedFields() {
-            PostRequest request = new PostRequest("Title", "Body", null, Set.of(1L), Set.of());
+            PostRequest request = new PostRequest("Title", "Body", null, Set.of(1L), Set.of(), null, null);
             User author = User.builder().id(1L).build();
             var cat = Category.builder().id(1L).build();
 

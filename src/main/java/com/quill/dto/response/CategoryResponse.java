@@ -7,6 +7,9 @@ public record CategoryResponse(
         @Schema(example = "1") Long id,
         @Schema(example = "Technology") String name,
         @Schema(example = "technology") String slug,
-        @Schema(example = "Posts about technology and software") String description,
+
+        @Schema(example = "Posts about technology and software")
+        String description,
+
         Instant createdAt,
         Instant updatedAt) {}
