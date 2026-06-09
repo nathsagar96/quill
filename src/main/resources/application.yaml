@@ -14,6 +14,22 @@ spring:
     host: localhost
     port: 1025
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics,loggers,env,threaddump,heapdump,mappings
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+  info:
+    env:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
 quill:
   app:
     base-url: http://localhost:5173

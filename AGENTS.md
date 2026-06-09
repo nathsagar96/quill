@@ -22,21 +22,28 @@
 - `src/main/resources/application.yaml` has **no** datasource — connection is auto-wired by
   `spring-boot-docker-compose` from `compose.yaml` (user `myuser`, pw `secret`, db `mydatabase`, port 5432).
 - `spring.jpa.hibernate.ddl-auto=validate` — schema MUST come from Flyway. New entity fields require
-  `V{n}__*.sql` in `src/main/resources/db/migration/` (current baseline: V1–V7 covering `users`, `posts`,
-  `comments`, `categories`, `tags`, join tables, roles, excerpts, bios, slugs).
+  `V{n}__*.sql` in `src/main/resources/db/migration/` (current baseline: V1–V11 covering `users`, `posts`,
+  `comments`, `categories`, `tags`, join tables, roles, bios, slugs, excerpts, `refresh_tokens`,
+  email verification on `users`, `password_reset_tokens`, `status`/`published_at`/`scheduled_at` on `posts`).
 - `spring.jpa.open-in-view=false`; lazy associations only resolve inside a transactional boundary.
 - `hibernate.jdbc.time_zone: UTC`.
 - Tests use Testcontainers (`postgres:18-alpine`) via `@ServiceConnection` in
   `TestcontainersConfiguration.java` — not `compose.yaml`. Keep image in sync. Requires Docker.
 - Flyway runs in `@DataJpaTest` (`spring-boot-starter-flyway-test`), so repos see real schema.
+- `compose.yaml` also starts **Mailpit** (axllent/mailpit) on ports 1025 (SMTP) and 8025 (web UI) for dev email.
 
 ## Layout
 
 - Entrypoint: `Application.java`. `main` is **package-private** (`static void main`) — do not make `public`.
 - Packages under `com.quill`: `model/`, `repository/`, `service/`, `controller/`, `mapper/`,
-  `dto/request/`, `dto/response/`, `exception/`, `config/`, `security/`.
-- `JpaConfig` carries `@EnableJpaAuditing`; `@DataJpaTest` slices must
-  `@Import({TestcontainersConfiguration.class, JpaConfig.class})` or `@CreatedDate`/`@LastModifiedDate` stay null.
+  `dto/request/`, `dto/response/`, `exception/`, `config/`, `security/`, `scheduler/`.
+- `JpaConfig` carries `@EnableJpaAuditing` *and* `@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)`;
+  `@DataJpaTest` slices must `@Import({TestcontainersConfiguration.class, JpaConfig.class})` or
+  `@CreatedDate`/`@LastModifiedDate` stay null.
+- `SchedulingConfig` (`@EnableScheduling`) turns on `@Scheduled`; `PostScheduler` polls every 60s to
+  publish due `SCHEDULED` posts.
+- `GlobalExceptionHandler` extends `ResponseEntityExceptionHandler` and maps `ApplicationException` +
+  Spring Security exceptions to RFC 7807 `ProblemDetail`.
 - `spotless-maven-plugin` (Palantir Java Format) is **not** bound to lifecycle — run manually:
   `./mvnw spotless:apply`.
 - No CI, no `.github/`.
@@ -44,10 +51,12 @@
 ## Security
 
 - `SecurityConfig` registers the filter chain:
-    - `GET /api/posts/**`, `/api/categories/**`, `/api/tags/**` — permit all
-    - `/api/auth/**` — permit all
+    - `/api/auth/**`, `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html` — permit all
+    - `GET /api/posts`, `/api/posts/*`, `/api/posts/slug/*`, `/api/categories`, `/api/categories/*`,
+      `/api/tags`, `/api/tags/*` — permit all
     - `DELETE /api/posts/**`, `/api/categories/**`, `/api/tags/**` — `ROLE_ADMIN`
     - Everything else — authenticated
+- CORS allows `http://localhost:5173` (Vite dev server).
 - JWT: HMAC-SHA via `JwtService`. Signing key from `quill.jwt.secret` (base64 in `application.yaml`).
   `JwtAuthenticationFilter` skips `/api/auth/**` via `PathPatternRequestMatcher`, sends 401 on expired/invalid.
 - `PasswordEncoder` is BCrypt. `@EnableMethodSecurity` is on.
@@ -59,9 +68,12 @@
 - Entities use Lombok `@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder` +
   `@EntityListeners(AuditingEntityListener.class)` + `@CreatedDate`/`@LastModifiedDate Instant`. New entities
   need matching `created_at`/`updated_at` columns in a Flyway migration.
+- `PostStatus` enum: `DRAFT`, `SCHEDULED`, `PUBLISHED`. Created posts default to `DRAFT`.
+- Scheduler (`PostScheduler`) transitions `SCHEDULED` → `PUBLISHED` based on `scheduled_at < now`.
 - Sealed exception hierarchy: `ApplicationException` permits `CategoryNotFoundException`,
-  `DuplicateEmailException`, `DuplicateUsernameException`, `ForbiddenOperationException`,
-  `PostNotFoundException`, `TagNotFoundException`, `UserNotFoundException`. New ones must be `final`,
+  `CommentNotFoundException`, `DuplicateEmailException`, `DuplicateUsernameException`,
+  `ForbiddenOperationException`, `PasswordResetTokenException`, `PostNotFoundException`,
+  `RefreshTokenException`, `TagNotFoundException`, `UserNotFoundException`. New ones must be `final`,
   extend `ApplicationException`, carry an `HttpStatus`, and join the `permits` clause.
 - Error responses are RFC 7807 `ProblemDetail` (`spring.mvc.problemdetails.enabled=true`). Don't write
   custom JSON bodies.

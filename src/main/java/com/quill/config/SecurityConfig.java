@@ -57,6 +57,10 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/posts/**", "/api/categories/**", "/api/tags/**")
                         .hasRole("ADMIN")
+                        .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus")
+                        .permitAll()
+                        .requestMatchers("/actuator/**")
+                        .hasRole("ADMIN")
                         .anyRequest()
                         .authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
