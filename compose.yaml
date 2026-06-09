@@ -7,3 +7,9 @@ services:
       - 'POSTGRES_USER=myuser'
     ports:
       - '5432'
+
+  mailpit:
+    image: 'axllent/mailpit:latest'
+    ports:
+      - '1025'
+      - '8025'

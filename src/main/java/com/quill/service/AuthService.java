@@ -1,14 +1,25 @@
 package com.quill.service;
 
 import com.quill.dto.request.LoginRequest;
+import com.quill.dto.request.RefreshTokenRequest;
 import com.quill.dto.request.RegisterRequest;
 import com.quill.dto.response.AuthResponse;
+import com.quill.dto.response.RegisterResponse;
 import com.quill.exception.DuplicateEmailException;
 import com.quill.exception.DuplicateUsernameException;
+import com.quill.exception.PasswordResetTokenException;
+import com.quill.exception.RefreshTokenException;
+import com.quill.model.PasswordResetToken;
+import com.quill.model.RefreshToken;
 import com.quill.model.User;
+import com.quill.repository.PasswordResetTokenRepository;
+import com.quill.repository.RefreshTokenRepository;
 import com.quill.repository.UserRepository;
 import com.quill.security.CustomUserDetails;
 import com.quill.security.JwtService;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -25,13 +36,19 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AuthService {
 
+    private static final Duration REFRESH_TOKEN_EXPIRY = Duration.ofDays(7);
+    private static final Duration PASSWORD_RESET_EXPIRY = Duration.ofHours(1);
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailService emailService;
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public RegisterResponse register(RegisterRequest request) {
         log.info("Registering user: username='{}', email='{}'", request.username(), request.email());
 
         if (userRepository.findByUsername(request.username()).isPresent()) {
@@ -41,6 +58,8 @@ public class AuthService {
             throw new DuplicateEmailException(request.email());
         }
 
+        String verificationToken = UUID.randomUUID().toString();
+
         User user = User.builder()
                 .username(request.username())
                 .email(request.email())
@@ -48,15 +67,83 @@ public class AuthService {
                 .displayName(request.displayName())
                 .bio(request.bio())
                 .avatarUrl(request.avatarUrl())
+                .enabled(false)
+                .emailVerified(false)
+                .verificationToken(UUID.fromString(verificationToken))
                 .build();
 
         User saved = userRepository.save(user);
         log.info("Registered user with id={}", saved.getId());
 
-        UserDetails userDetails = new CustomUserDetails(saved);
+        emailService.sendVerificationEmail(saved.getEmail(), verificationToken);
 
-        String token = jwtService.generateToken(userDetails);
-        return toAuthResponse(token, saved);
+        return new RegisterResponse("Registration successful. Please check your email to verify your account.");
+    }
+
+    @Transactional
+    public void verifyEmail(String token) {
+        UUID tokenUuid;
+        try {
+            tokenUuid = UUID.fromString(token);
+        } catch (IllegalArgumentException e) {
+            throw new RefreshTokenException("Invalid verification token");
+        }
+
+        User user = userRepository
+                .findByVerificationToken(tokenUuid)
+                .orElseThrow(() -> new RefreshTokenException("Invalid verification token"));
+
+        user.setEnabled(true);
+        user.setEmailVerified(true);
+        user.setVerificationToken(null);
+        userRepository.save(user);
+        log.info("Verified email for user id={}", user.getId());
+    }
+
+    @Transactional
+    public void forgotPassword(String email) {
+        log.info("Password reset requested for email='{}'", email);
+
+        userRepository.findByEmail(email).ifPresent(user -> {
+            PasswordResetToken token = PasswordResetToken.builder()
+                    .token(UUID.randomUUID())
+                    .user(user)
+                    .expiresAt(Instant.now().plus(PASSWORD_RESET_EXPIRY))
+                    .build();
+            passwordResetTokenRepository.save(token);
+            emailService.sendPasswordResetEmail(
+                    user.getEmail(), token.getToken().toString());
+        });
+    }
+
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        UUID tokenUuid;
+        try {
+            tokenUuid = UUID.fromString(token);
+        } catch (IllegalArgumentException e) {
+            throw new PasswordResetTokenException("Invalid password reset token");
+        }
+
+        PasswordResetToken stored = passwordResetTokenRepository
+                .findByToken(tokenUuid)
+                .orElseThrow(() -> new PasswordResetTokenException("Password reset token not found"));
+
+        if (stored.isUsed()) {
+            throw new PasswordResetTokenException("Password reset token has already been used");
+        }
+
+        if (Instant.now().isAfter(stored.getExpiresAt())) {
+            throw new PasswordResetTokenException("Password reset token has expired");
+        }
+
+        stored.setUsed(true);
+        passwordResetTokenRepository.save(stored);
+
+        User user = stored.getUser();
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        log.info("Password reset for user id={}", user.getId());
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -68,13 +155,70 @@ public class AuthService {
         var principal = (CustomUserDetails) authenticated.getPrincipal();
         User user = principal.user();
 
-        String token = jwtService.generateToken(principal);
-        return toAuthResponse(token, user);
+        String accessToken = jwtService.generateToken(principal);
+        String refreshToken = issueRefreshToken(user);
+        return toAuthResponse(accessToken, refreshToken, user);
     }
 
-    private AuthResponse toAuthResponse(String token, User user) {
+    @Transactional
+    public AuthResponse refresh(RefreshTokenRequest request) {
+        UUID tokenUuid;
+        try {
+            tokenUuid = UUID.fromString(request.refreshToken());
+        } catch (IllegalArgumentException e) {
+            throw new RefreshTokenException("Invalid refresh token format");
+        }
+
+        RefreshToken stored = refreshTokenRepository
+                .findByToken(tokenUuid)
+                .orElseThrow(() -> new RefreshTokenException("Refresh token not found"));
+
+        if (stored.isRevoked()) {
+            throw new RefreshTokenException("Refresh token has been revoked");
+        }
+
+        if (Instant.now().isAfter(stored.getExpiresAt())) {
+            throw new RefreshTokenException("Refresh token has expired");
+        }
+
+        stored.setRevoked(true);
+        refreshTokenRepository.save(stored);
+
+        User user = stored.getUser();
+        UserDetails userDetails = new CustomUserDetails(user);
+
+        String accessToken = jwtService.generateToken(userDetails);
+        String refreshToken = issueRefreshToken(user);
+        return toAuthResponse(accessToken, refreshToken, user);
+    }
+
+    @Transactional
+    public void logout(RefreshTokenRequest request) {
+        try {
+            UUID tokenUuid = UUID.fromString(request.refreshToken());
+            refreshTokenRepository.findByToken(tokenUuid).ifPresent(token -> {
+                token.setRevoked(true);
+                refreshTokenRepository.save(token);
+            });
+        } catch (IllegalArgumentException e) {
+            // Invalid UUID format — nothing to revoke
+        }
+    }
+
+    private String issueRefreshToken(User user) {
+        RefreshToken token = RefreshToken.builder()
+                .token(UUID.randomUUID())
+                .user(user)
+                .expiresAt(Instant.now().plus(REFRESH_TOKEN_EXPIRY))
+                .build();
+        refreshTokenRepository.save(token);
+        return token.getToken().toString();
+    }
+
+    private AuthResponse toAuthResponse(String token, String refreshToken, User user) {
         return new AuthResponse(
                 token,
+                refreshToken,
                 "Bearer",
                 user.getId(),
                 user.getUsername(),

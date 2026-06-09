@@ -2,6 +2,7 @@ package com.quill.dto.response;
 
 public record AuthResponse(
         String token,
+        String refreshToken,
         String tokenType,
         Long userId,
         String username,
