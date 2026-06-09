@@ -1,16 +1,17 @@
 package com.quill.dto.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.Set;
 
 public record PostResponse(
-        Long id,
-        String title,
-        String body,
-        String excerpt,
-        String slug,
+        @Schema(example = "1") Long id,
+        @Schema(example = "My First Post") String title,
+        @Schema(example = "This is the full body of the post...") String body,
+        @Schema(example = "A short excerpt for preview") String excerpt,
+        @Schema(example = "my-first-post") String slug,
         AuthorResponse author,
-        Set<Long> categoryIds,
-        Set<Long> tagIds,
+        @Schema(example = "[\"1\",\"2\"]") Set<Long> categoryIds,
+        @Schema(example = "[\"3\",\"4\"]") Set<Long> tagIds,
         Instant createdAt,
         Instant updatedAt) {}
