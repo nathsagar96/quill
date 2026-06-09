@@ -8,6 +8,8 @@ import com.quill.model.Category;
 import com.quill.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,7 @@ public class CategoryService {
     private final CategoryMapper categoryMapper;
     private final SlugService slugService;
 
+    @Cacheable("categories")
     public java.util.List<CategoryResponse> findAllCategories() {
         log.debug("Fetching all categories");
         return categoryRepository.findAll().stream()
@@ -28,6 +31,7 @@ public class CategoryService {
                 .toList();
     }
 
+    @Cacheable("categories")
     public CategoryResponse findCategoryById(Long id) {
         log.debug("Fetching category with id={}", id);
         return categoryRepository
@@ -37,6 +41,7 @@ public class CategoryService {
     }
 
     @Transactional
+    @CacheEvict("categories")
     public CategoryResponse createCategory(CategoryRequest request) {
         log.info("Creating category: name='{}'", request.name());
         Category entity = categoryMapper.toEntity(request);
@@ -47,6 +52,7 @@ public class CategoryService {
     }
 
     @Transactional
+    @CacheEvict("categories")
     public CategoryResponse updateCategory(Long id, CategoryRequest request) {
         log.info("Updating category with id={}", id);
         Category existing = categoryRepository.findById(id).orElseThrow(() -> new CategoryNotFoundException(id));
@@ -64,6 +70,7 @@ public class CategoryService {
     }
 
     @Transactional
+    @CacheEvict("categories")
     public void deleteCategory(Long id) {
         log.info("Deleting category with id={}", id);
         if (!categoryRepository.existsById(id)) {

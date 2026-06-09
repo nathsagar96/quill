@@ -2,6 +2,7 @@ package com.quill.security;
 
 import com.quill.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -16,7 +17,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(@NonNull String usernameOrEmail) throws UsernameNotFoundException {
         var user = userRepository
                 .findByUsername(usernameOrEmail)
                 .or(() -> userRepository.findByEmail(usernameOrEmail))

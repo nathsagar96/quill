@@ -12,6 +12,7 @@ import com.quill.dto.request.PostRequest;
 import com.quill.dto.response.AuthorResponse;
 import com.quill.dto.response.PostResponse;
 import com.quill.exception.PostNotFoundException;
+import com.quill.filter.CacheControlFilter;
 import com.quill.model.PostStatus;
 import com.quill.service.PostService;
 import java.time.Instant;
@@ -35,7 +36,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import tools.jackson.databind.json.JsonMapper;
 
 @WebMvcTest(PostController.class)
-@Import(TestSecurityConfig.class)
+@Import({TestSecurityConfig.class, CacheControlFilter.class})
 @DisplayName("PostController")
 class PostControllerTest {
 
@@ -84,6 +85,7 @@ class PostControllerTest {
 
             assertThat(mockMvc.get().uri("/api/posts"))
                     .hasStatusOk()
+                    .hasHeader("Cache-Control", "max-age=60, public, stale-while-revalidate=300")
                     .bodyJson()
                     .extractingPath("$.content")
                     .asArray()
@@ -100,6 +102,7 @@ class PostControllerTest {
 
             assertThat(mockMvc.get().uri("/api/posts"))
                     .hasStatusOk()
+                    .hasHeader("Cache-Control", "max-age=60, public, stale-while-revalidate=300")
                     .bodyJson()
                     .extractingPath("$.content")
                     .asArray()
@@ -108,7 +111,9 @@ class PostControllerTest {
 
         @Test
         void allowsAnonymousAccess() {
-            assertThat(mockMvc.get().uri("/api/posts")).hasStatusOk();
+            assertThat(mockMvc.get().uri("/api/posts"))
+                    .hasStatusOk()
+                    .hasHeader("Cache-Control", "max-age=60, public, stale-while-revalidate=300");
         }
 
         @Test
@@ -120,6 +125,7 @@ class PostControllerTest {
 
             assertThat(mockMvc.get().uri("/api/posts?categoryId={id}", CATEGORY_ID))
                     .hasStatusOk()
+                    .hasHeader("Cache-Control", "max-age=60, public, stale-while-revalidate=300")
                     .bodyJson()
                     .extractingPath("$.content")
                     .asArray()
@@ -136,6 +142,7 @@ class PostControllerTest {
 
             assertThat(mockMvc.get().uri("/api/posts?tagId={id}", TAG_ID))
                     .hasStatusOk()
+                    .hasHeader("Cache-Control", "max-age=60, public, stale-while-revalidate=300")
                     .bodyJson()
                     .extractingPath("$.content")
                     .asArray()
@@ -177,6 +184,7 @@ class PostControllerTest {
 
             assertThat(mockMvc.get().uri("/api/posts/{id}", POST_ID))
                     .hasStatusOk()
+                    .hasHeader("Cache-Control", "max-age=60, private")
                     .bodyJson()
                     .extractingPath("$.id")
                     .asNumber()
@@ -196,7 +204,9 @@ class PostControllerTest {
         void allowsAnonymousAccess() {
             when(postService.findPostById(eq(POST_ID), any())).thenReturn(response);
 
-            assertThat(mockMvc.get().uri("/api/posts/{id}", POST_ID)).hasStatusOk();
+            assertThat(mockMvc.get().uri("/api/posts/{id}", POST_ID))
+                    .hasStatusOk()
+                    .hasHeader("Cache-Control", "max-age=60, private");
             verify(postService).findPostById(eq(POST_ID), any());
         }
     }
@@ -214,6 +224,7 @@ class PostControllerTest {
 
             assertThat(mockMvc.get().uri("/api/posts/slug/{slug}", SLUG))
                     .hasStatusOk()
+                    .hasHeader("Cache-Control", "max-age=60, private")
                     .bodyJson()
                     .extractingPath("$.id")
                     .asNumber()
@@ -233,7 +244,9 @@ class PostControllerTest {
         void allowsAnonymousAccess() {
             when(postService.findPostBySlug(eq(SLUG), any())).thenReturn(response);
 
-            assertThat(mockMvc.get().uri("/api/posts/slug/{slug}", SLUG)).hasStatusOk();
+            assertThat(mockMvc.get().uri("/api/posts/slug/{slug}", SLUG))
+                    .hasStatusOk()
+                    .hasHeader("Cache-Control", "max-age=60, private");
             verify(postService).findPostBySlug(eq(SLUG), any());
         }
     }

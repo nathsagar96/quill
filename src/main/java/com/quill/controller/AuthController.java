@@ -38,8 +38,7 @@ public class AuthController {
     @Operation(
             summary = "Register a new user",
             description = "Creates a new user account. A verification email may be sent. "
-                    + "Does not require authentication.",
-            security = {})
+                    + "Does not require authentication.")
     @ApiResponse(responseCode = "201", description = "User registered successfully")
     @ApiResponse(
             responseCode = "409",
@@ -53,8 +52,7 @@ public class AuthController {
     @Operation(
             summary = "Verify email address",
             description = "Confirms a user's email address using the token sent during registration. "
-                    + "Does not require authentication.",
-            security = {})
+                    + "Does not require authentication.")
     @ApiResponse(responseCode = "200", description = "Email verified")
     @ApiResponse(
             responseCode = "400",
@@ -69,8 +67,7 @@ public class AuthController {
     @Operation(
             summary = "Request password reset",
             description = "Sends a password reset email to the given address if it exists. "
-                    + "Does not reveal whether the account exists. Does not require authentication.",
-            security = {})
+                    + "Does not reveal whether the account exists. Does not require authentication.")
     @ApiResponse(responseCode = "200", description = "Password reset email sent")
     public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request.email());
@@ -81,8 +78,7 @@ public class AuthController {
     @Operation(
             summary = "Reset password with token",
             description =
-                    "Resets the password using the token received via email. " + "Does not require authentication.",
-            security = {})
+                    "Resets the password using the token received via email. " + "Does not require authentication.")
     @ApiResponse(responseCode = "200", description = "Password reset successfully")
     @ApiResponse(
             responseCode = "400",
@@ -97,8 +93,7 @@ public class AuthController {
     @Operation(
             summary = "Authenticate and get tokens",
             description = "Authenticates with username and password. Returns access and refresh tokens. "
-                    + "Does not require authentication.",
-            security = {})
+                    + "Does not require authentication.")
     @ApiResponse(responseCode = "200", description = "Login successful", useReturnTypeSchema = true)
     @ApiResponse(
             responseCode = "401",
@@ -112,8 +107,7 @@ public class AuthController {
     @Operation(
             summary = "Refresh access token",
             description = "Exchanges a valid refresh token for a new access token and refresh token pair. "
-                    + "Does not require authentication.",
-            security = {})
+                    + "Does not require authentication.")
     @ApiResponse(responseCode = "200", description = "Tokens refreshed", useReturnTypeSchema = true)
     @ApiResponse(
             responseCode = "401",

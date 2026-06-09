@@ -9,6 +9,7 @@ import com.quill.config.TestSecurityConfig;
 import com.quill.dto.request.CategoryRequest;
 import com.quill.dto.response.CategoryResponse;
 import com.quill.exception.CategoryNotFoundException;
+import com.quill.filter.CacheControlFilter;
 import com.quill.service.CategoryService;
 import java.time.Instant;
 import java.util.List;
@@ -26,7 +27,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import tools.jackson.databind.json.JsonMapper;
 
 @WebMvcTest(CategoryController.class)
-@Import(TestSecurityConfig.class)
+@Import({TestSecurityConfig.class, CacheControlFilter.class})
 @DisplayName("CategoryController")
 class CategoryControllerTest {
 
@@ -58,6 +59,7 @@ class CategoryControllerTest {
 
             assertThat(mockMvc.get().uri("/api/categories"))
                     .hasStatusOk()
+                    .hasHeader("Cache-Control", "max-age=3600, public")
                     .bodyJson()
                     .isEqualTo(jsonMapper.writeValueAsString(List.of(response)));
             verify(categoryService).findAllCategories();
@@ -65,7 +67,9 @@ class CategoryControllerTest {
 
         @Test
         void allowsAnonymousAccess() {
-            assertThat(mockMvc.get().uri("/api/categories")).hasStatusOk();
+            assertThat(mockMvc.get().uri("/api/categories"))
+                    .hasStatusOk()
+                    .hasHeader("Cache-Control", "max-age=3600, public");
         }
     }
 
@@ -79,6 +83,7 @@ class CategoryControllerTest {
 
             assertThat(mockMvc.get().uri("/api/categories/{id}", CATEGORY_ID))
                     .hasStatusOk()
+                    .hasHeader("Cache-Control", "max-age=3600, public")
                     .bodyJson()
                     .extractingPath("$.name")
                     .asString()
@@ -95,7 +100,9 @@ class CategoryControllerTest {
 
         @Test
         void allowsAnonymousAccess() {
-            assertThat(mockMvc.get().uri("/api/categories/{id}", CATEGORY_ID)).hasStatusOk();
+            assertThat(mockMvc.get().uri("/api/categories/{id}", CATEGORY_ID))
+                    .hasStatusOk()
+                    .hasHeader("Cache-Control", "max-age=3600, public");
         }
     }
 

@@ -9,6 +9,7 @@ import com.quill.config.TestSecurityConfig;
 import com.quill.dto.request.TagRequest;
 import com.quill.dto.response.TagResponse;
 import com.quill.exception.TagNotFoundException;
+import com.quill.filter.CacheControlFilter;
 import com.quill.service.TagService;
 import java.time.Instant;
 import java.util.List;
@@ -26,7 +27,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import tools.jackson.databind.json.JsonMapper;
 
 @WebMvcTest(TagController.class)
-@Import(TestSecurityConfig.class)
+@Import({TestSecurityConfig.class, CacheControlFilter.class})
 @DisplayName("TagController")
 class TagControllerTest {
 
@@ -53,6 +54,7 @@ class TagControllerTest {
 
             assertThat(mockMvc.get().uri("/api/tags"))
                     .hasStatusOk()
+                    .hasHeader("Cache-Control", "max-age=3600, public")
                     .bodyJson()
                     .isEqualTo(jsonMapper.writeValueAsString(List.of(response)));
             verify(tagService).findAllTags();
@@ -60,7 +62,7 @@ class TagControllerTest {
 
         @Test
         void allowsAnonymousAccess() {
-            assertThat(mockMvc.get().uri("/api/tags")).hasStatusOk();
+            assertThat(mockMvc.get().uri("/api/tags")).hasStatusOk().hasHeader("Cache-Control", "max-age=3600, public");
         }
     }
 
@@ -74,6 +76,7 @@ class TagControllerTest {
 
             assertThat(mockMvc.get().uri("/api/tags/{id}", TAG_ID))
                     .hasStatusOk()
+                    .hasHeader("Cache-Control", "max-age=3600, public")
                     .bodyJson()
                     .extractingPath("$.name")
                     .asString()
@@ -90,7 +93,9 @@ class TagControllerTest {
 
         @Test
         void allowsAnonymousAccess() {
-            assertThat(mockMvc.get().uri("/api/tags/{id}", TAG_ID)).hasStatusOk();
+            assertThat(mockMvc.get().uri("/api/tags/{id}", TAG_ID))
+                    .hasStatusOk()
+                    .hasHeader("Cache-Control", "max-age=3600, public");
         }
     }
 
