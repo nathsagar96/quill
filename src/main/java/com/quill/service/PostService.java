@@ -49,6 +49,11 @@ public class PostService {
         return postRepository.findByStatus(PostStatus.PUBLISHED, pageable).map(postMapper::toResponse);
     }
 
+    public Page<PostResponse> searchPosts(String query, Pageable pageable) {
+        log.debug("Searching posts: query='{}', page={}", query, pageable.getPageNumber());
+        return postRepository.searchPosts(query, pageable).map(postMapper::toResponse);
+    }
+
     public Page<PostResponse> findPostsByCategoryId(Long categoryId, Pageable pageable) {
         log.debug("Fetching published posts by category id={}, page={}", categoryId, pageable.getPageNumber());
         return postRepository

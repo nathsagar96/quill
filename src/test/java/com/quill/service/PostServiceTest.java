@@ -163,6 +163,43 @@ class PostServiceTest {
     }
 
     @Nested
+    @DisplayName("searchPosts")
+    class SearchPosts {
+
+        @Test
+        @DisplayName("delegates to repository and maps results")
+        void delegatesAndMaps() {
+            var query = "java spring";
+            var pageable = PageRequest.of(0, 10);
+            var entityPage = new PageImpl<>(List.of(publishedPost), pageable, 1);
+            when(postRepository.searchPosts(query, pageable)).thenReturn(entityPage);
+            when(postMapper.toResponse(publishedPost)).thenReturn(response);
+
+            Page<PostResponse> result = postService.searchPosts(query, pageable);
+
+            assertThat(result.getContent()).containsExactly(response);
+            assertThat(result.getTotalElements()).isEqualTo(1);
+            verify(postRepository).searchPosts(query, pageable);
+            verify(postMapper).toResponse(publishedPost);
+        }
+
+        @Test
+        @DisplayName("returns empty page when no posts match")
+        void returnsEmptyPage() {
+            var query = "nonexistent";
+            var pageable = PageRequest.of(0, 10);
+            var empty = new PageImpl<>(List.<Post>of(), pageable, 0);
+            when(postRepository.searchPosts(query, pageable)).thenReturn(empty);
+
+            Page<PostResponse> result = postService.searchPosts(query, pageable);
+
+            assertThat(result.getContent()).isEmpty();
+            assertThat(result.getTotalElements()).isZero();
+            verify(postMapper, never()).toResponse(any());
+        }
+    }
+
+    @Nested
     @DisplayName("findPostsByCategoryId")
     class FindPostsByCategoryId {
 

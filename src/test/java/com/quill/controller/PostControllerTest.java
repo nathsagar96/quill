@@ -174,6 +174,59 @@ class PostControllerTest {
     }
 
     @Nested
+    @DisplayName("GET /api/posts/search")
+    class SearchPosts {
+
+        private static final String QUERY = "java spring";
+
+        @Test
+        @WithMockUser
+        void returnsPageOfResults() {
+            var pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
+            Page<PostResponse> page = new PageImpl<>(List.of(response), pageable, 1);
+            when(postService.searchPosts(QUERY, pageable)).thenReturn(page);
+
+            assertThat(mockMvc.get().uri("/api/posts/search?q={q}", QUERY))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.content")
+                    .asArray()
+                    .hasSize(1);
+            verify(postService).searchPosts(QUERY, pageable);
+        }
+
+        @Test
+        void allowsAnonymousAccess() {
+            var pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
+            Page<PostResponse> page = new PageImpl<>(List.of(), pageable, 0);
+            when(postService.searchPosts(QUERY, pageable)).thenReturn(page);
+
+            assertThat(mockMvc.get().uri("/api/posts/search?q={q}", QUERY))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.content")
+                    .asArray()
+                    .isEmpty();
+        }
+
+        @Test
+        @WithMockUser
+        void returnsEmptyPage() {
+            var pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
+            Page<PostResponse> empty = new PageImpl<>(List.of(), pageable, 0);
+            when(postService.searchPosts("zzz", pageable)).thenReturn(empty);
+
+            assertThat(mockMvc.get().uri("/api/posts/search?q=zzz"))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.content")
+                    .asArray()
+                    .isEmpty();
+            verify(postService).searchPosts("zzz", pageable);
+        }
+    }
+
+    @Nested
     @DisplayName("GET /api/posts/{id}")
     class FindPostById {
 

@@ -41,6 +41,19 @@ public class PostController {
 
     private final PostService postService;
 
+    @GetMapping("/search")
+    @Operation(
+            summary = "Search posts",
+            description = "Full-text search across published post titles and bodies. "
+                    + "Supports web-style syntax: terms are ANDed, OR for alternation, "
+                    + "quotes for exact phrases, - for exclusion.")
+    public ResponseEntity<Page<PostResponse>> searchPosts(
+            @RequestParam @Parameter(description = "Search query") String q,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) @Parameter(hidden = true)
+                    Pageable pageable) {
+        return ResponseEntity.ok(postService.searchPosts(q, pageable));
+    }
+
     @GetMapping
     @Operation(
             summary = "List posts",

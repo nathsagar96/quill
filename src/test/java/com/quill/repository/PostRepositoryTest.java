@@ -317,4 +317,111 @@ class PostRepositoryTest {
         assertThatThrownBy(() -> postRepository.saveAndFlush(duplicate))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
+
+    @Test
+    @DisplayName("should find published posts matching the query in title")
+    void shouldSearchByTitle() {
+        postRepository.saveAndFlush(Post.builder()
+                .title("Java Programming Guide")
+                .body("Body of the post")
+                .slug("java-guide")
+                .author(author)
+                .status(PostStatus.PUBLISHED)
+                .build());
+
+        Page<Post> result = postRepository.searchPosts("java", PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().getFirst().getTitle()).isEqualTo("Java Programming Guide");
+    }
+
+    @Test
+    @DisplayName("should find published posts matching the query in body")
+    void shouldSearchByBody() {
+        postRepository.saveAndFlush(Post.builder()
+                .title("Random Title")
+                .body("This post is about spring boot and hibernate")
+                .slug("random-title")
+                .author(author)
+                .status(PostStatus.PUBLISHED)
+                .build());
+
+        Page<Post> result = postRepository.searchPosts("hibernate", PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().getFirst().getTitle()).isEqualTo("Random Title");
+    }
+
+    @Test
+    @DisplayName("should not return draft posts")
+    void shouldNotReturnDraftPostsInSearch() {
+        postRepository.saveAndFlush(Post.builder()
+                .title("Draft Post About Java")
+                .body("This is a draft post")
+                .slug("draft-java")
+                .author(author)
+                .status(PostStatus.DRAFT)
+                .build());
+
+        Page<Post> result = postRepository.searchPosts("java", PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("should return empty page when no posts match the query")
+    void shouldReturnEmptyWhenNoMatch() {
+        postRepository.saveAndFlush(Post.builder()
+                .title("Title")
+                .body("Body")
+                .slug("title")
+                .author(author)
+                .status(PostStatus.PUBLISHED)
+                .build());
+
+        Page<Post> result = postRepository.searchPosts("zzzzzzzzzzz", PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isZero();
+    }
+
+    @Test
+    @DisplayName("should support phrase search with quoted syntax")
+    void shouldSupportPhraseSearch() {
+        postRepository.saveAndFlush(Post.builder()
+                .title("Getting Started")
+                .body("This is a spring boot tutorial for beginners")
+                .slug("getting-started")
+                .author(author)
+                .status(PostStatus.PUBLISHED)
+                .build());
+
+        Page<Post> result = postRepository.searchPosts("\"spring boot\"", PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("should order results by relevance with title matches first")
+    void shouldOrderByRelevance() {
+        postRepository.saveAndFlush(Post.builder()
+                .title("Java Programming")
+                .body("A comprehensive post about java programming language")
+                .slug("java-programming")
+                .author(author)
+                .status(PostStatus.PUBLISHED)
+                .build());
+        postRepository.saveAndFlush(Post.builder()
+                .title("Some Other Post")
+                .body("This post briefly mentions java in passing")
+                .slug("other-post")
+                .author(author)
+                .status(PostStatus.PUBLISHED)
+                .build());
+
+        Page<Post> result = postRepository.searchPosts("java", PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent().getFirst().getTitle()).isEqualTo("Java Programming");
+    }
 }
