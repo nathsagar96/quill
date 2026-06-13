@@ -1,10 +1,10 @@
 package com.quill.service;
 
+import com.quill.config.AppProperties;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -15,16 +15,11 @@ import org.springframework.stereotype.Service;
 public class EmailService {
 
     private final JavaMailSender mailSender;
-
-    @Value("${quill.app.base-url}")
-    private String baseUrl;
-
-    @Value("${spring.mail.host:localhost}")
-    private String mailHost;
+    private final AppProperties appProperties;
 
     public void sendVerificationEmail(String to, String token) {
         String subject = "Verify your Quill account";
-        String link = baseUrl + "/verify-email?token=" + token;
+        String link = appProperties.baseUrl() + "/verify-email?token=" + token;
         String body = buildVerificationBody(link);
 
         sendHtmlEmail(to, subject, body);
@@ -32,7 +27,7 @@ public class EmailService {
 
     public void sendPasswordResetEmail(String to, String token) {
         String subject = "Reset your Quill password";
-        String link = baseUrl + "/reset-password?token=" + token;
+        String link = appProperties.baseUrl() + "/reset-password?token=" + token;
         String body = buildPasswordResetBody(link);
 
         sendHtmlEmail(to, subject, body);
