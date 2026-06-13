@@ -25,10 +25,9 @@
 - Datasource is auto-wired by `spring-boot-docker-compose` from `compose.yaml` in dev (user `quill`,
   pw `secret`, db `quill`, port 5432). Static fallback in `application.yaml` points to same values.
 - `spring.jpa.hibernate.ddl-auto=validate` — schema MUST come from Flyway. New entity fields require
-  `V{n}__*.sql` in `src/main/resources/db/migration/` (current baseline: V1 – V12 covering `users`, `posts`,
-  `comments`, `categories`, `tags`, join tables, roles, bios, slugs, excerpts, `refresh_tokens`,
-  email verification on `users`, `password_reset_tokens`, `status`/`published_at`/`scheduled_at`
-  on `posts`, and fulltext search via `search_vector tsvector` with GIN index).
+  `V{n}__*.sql` in `src/main/resources/db/migration/` (current baseline: V1 – V13 covering schema,
+  roles, categories, tags, excerpts, slugs, refresh_tokens, email verification, password reset,
+  post status/scheduling, fulltext search, and partial index on `scheduled_at`).
 - `spring.jpa.open-in-view=false`; lazy associations only resolve inside a transactional boundary.
 - Tests use Testcontainers (`postgres:18-alpine`) via `@ServiceConnection` in
   `TestcontainersConfiguration.java` — not `compose.yaml`. Keep image in sync. Requires Docker.
@@ -39,28 +38,27 @@
 
 - Entrypoint: `Application.java`. `main` is **package-private** (`static void main`) — do not make `public`.
 - Packages under `com.quill`: `model/`, `repository/`, `service/`, `controller/`, `mapper/`,
-  `dto/request/`, `dto/response/`, `exception/`, `config/`, `security/`, `scheduler/`, `filter/`.
+  `dto/request/`, `dto/response/`, `exception/`, `config/`, `security/`, `scheduler/`, `filter/`, `event/`.
 - `JpaConfig` carries `@EnableJpaAuditing` *and* `@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)`;
   `@DataJpaTest` slices must `@Import({TestcontainersConfiguration.class, JpaConfig.class})` or
   `@CreatedDate`/`@LastModifiedDate` stay null.
-- `SchedulingConfig` (`@EnableScheduling`) turns on `@Scheduled`; `PostScheduler` polls every 60s to
-  publish due `SCHEDULED` posts.
+- `SchedulingConfig` (`@EnableScheduling`) enables `@Scheduled`; `PostScheduler` publishes `SCHEDULED` posts every 60s.
 - `CacheConfig` (`@EnableCaching`) uses Caffeine for `categories` and `tags` (max 100, 1h TTL), and
   registers `ShallowEtagHeaderFilter` on `/api/categories/*`, `/api/tags/*`, `/api/posts/**`.
-- `CacheControlFilter` adds `Cache-Control` headers on GET: categories/tags → `max-age=3600, public`,
-  post list → `max-age=60, public, stale-while-revalidate=300`, individual post → `max-age=60, private`.
-- `GlobalExceptionHandler` extends `ResponseEntityExceptionHandler` and maps `ApplicationException` +
-  Spring Security exceptions to RFC 7807 `ProblemDetail`. Also handles `MethodArgumentNotValidException`
+- `CacheControlFilter` sets Cache-Control headers on GET: categories/tags → `max-age=3600, public`,
+  post lists → `max-age=60, public, stale-while-revalidate=300`, single post → `max-age=60, private`.
+- `GlobalExceptionHandler` extends `ResponseEntityExceptionHandler`, maps `ApplicationException` +
+  Spring Security exceptions to RFC 7807 `ProblemDetail`. Handles `MethodArgumentNotValidException`
   with field-level error details.
 - `spotless-maven-plugin` (Palantir Java Format) is **not** bound to lifecycle — run manually:
   `./mvnw spotless:apply`.
-- No CI, no `.github/`.
 
 ## Security
 
-- `SecurityConfig` registers the filter chain:
+- `SecurityConfig` filter chain:
     - `/api/auth/**`, `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html` — permit all
     - `/actuator/health`, `/actuator/info`, `/actuator/prometheus` — permit all
+    - `GET /api/posts/me` — authenticated
     - `GET /api/posts`, `/api/posts/*`, `/api/posts/slug/*`, `/api/categories`, `/api/categories/*`,
       `/api/tags`, `/api/tags/*` — permit all
     - `DELETE /api/posts/**`, `/api/categories/**`, `/api/tags/**` — `ROLE_ADMIN`
@@ -94,8 +92,9 @@
   custom JSON bodies.
 - Services: `@Service @RequiredArgsConstructor @Transactional(readOnly = true)` at class level,
   `@Transactional` on writes. Mutate loaded entities and rely on dirty checking — no explicit `save()` on
-  updates. Ownership checks use an `isAdmin` boolean from the controller (extracted from
-  `Authentication.getAuthorities()`). Handwritten `@Component` mappers (no MapStruct).
+  updates. Ownership checks receive `username` string from the controller (via `Authentication.getName()`)
+  and compare with resource owner's field directly, throwing `ForbiddenOperationException` on mismatch.
+  Handwritten `@Component` mappers (no MapStruct).
 - Events (`event/`): `UserRegisteredEvent` and `PasswordResetRequestedEvent` are Spring `record`s
   published via `ApplicationEventPublisher`; listeners in the same service layer handle email dispatch.
 - `application-prod.yaml` provides production overrides: Hikari pool tuning, structured ECS logging,

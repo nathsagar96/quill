@@ -56,27 +56,16 @@ public class PostController {
 
     @GetMapping
     @Operation(
-            summary = "List posts",
-            description = "Returns a paginated list of published posts. "
-                    + "Optionally filter by category ID or tag ID, or by status for the authenticated user.")
-    @ApiResponse(responseCode = "200", description = "Paginated list of posts", useReturnTypeSchema = true)
+            summary = "List published posts",
+            description =
+                    "Returns a paginated list of published posts. " + "Optionally filter by category ID or tag ID.")
+    @ApiResponse(responseCode = "200", description = "Paginated list of published posts", useReturnTypeSchema = true)
     public ResponseEntity<Page<PostResponse>> findAllPosts(
             @Parameter(description = "Filter by category ID", example = "1") @RequestParam(required = false)
                     Long categoryId,
             @Parameter(description = "Filter by tag ID", example = "1") @RequestParam(required = false) Long tagId,
-            @Parameter(description = "Filter by post status (requires authentication, scoped to own posts)")
-                    @RequestParam(required = false)
-                    PostStatus status,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) @Parameter(hidden = true)
-                    Pageable pageable,
-            Authentication authentication) {
-        if (status != null) {
-            String username = authentication != null ? authentication.getName() : null;
-            if (username == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
-            return ResponseEntity.ok(postService.findPostsByStatus(status, categoryId, tagId, pageable, username));
-        }
+                    Pageable pageable) {
         if (categoryId != null) {
             return ResponseEntity.ok(postService.findPostsByCategoryId(categoryId, pageable));
         }
@@ -84,6 +73,31 @@ public class PostController {
             return ResponseEntity.ok(postService.findPostsByTagId(tagId, pageable));
         }
         return ResponseEntity.ok(postService.findAllPosts(pageable));
+    }
+
+    @GetMapping("/me")
+    @Operation(
+            summary = "List my posts",
+            description = "Returns a paginated list of the authenticated user's posts. "
+                    + "Optionally filter by status, category ID, or tag ID. Requires authentication.")
+    @ApiResponse(responseCode = "200", description = "Paginated list of user's posts", useReturnTypeSchema = true)
+    @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    public ResponseEntity<Page<PostResponse>> findMyPosts(
+            @Parameter(description = "Filter by post status") @RequestParam(required = false) PostStatus status,
+            @Parameter(description = "Filter by category ID", example = "1") @RequestParam(required = false)
+                    Long categoryId,
+            @Parameter(description = "Filter by tag ID", example = "1") @RequestParam(required = false) Long tagId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) @Parameter(hidden = true)
+                    Pageable pageable,
+            Authentication authentication) {
+        if (status != null) {
+            return ResponseEntity.ok(
+                    postService.findPostsByStatus(status, categoryId, tagId, pageable, authentication.getName()));
+        }
+        return ResponseEntity.ok(postService.findMyPosts(categoryId, tagId, pageable, authentication.getName()));
     }
 
     @GetMapping("/{id}")

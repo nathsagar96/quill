@@ -149,16 +149,21 @@ class PostControllerTest {
                     .hasSize(1);
             verify(postService).findPostsByTagId(TAG_ID, pageable);
         }
+    }
+
+    @Nested
+    @DisplayName("GET /api/posts/me")
+    class FindMyPosts {
 
         @Test
         @WithMockUser(username = USERNAME)
-        void filtersByStatus() {
+        void returnsPostsByStatus() {
             var pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
             Page<PostResponse> page = new PageImpl<>(List.of(response), pageable, 1);
             when(postService.findPostsByStatus(PostStatus.DRAFT, null, null, pageable, USERNAME))
                     .thenReturn(page);
 
-            assertThat(mockMvc.get().uri("/api/posts?status=DRAFT"))
+            assertThat(mockMvc.get().uri("/api/posts/me?status=DRAFT"))
                     .hasStatusOk()
                     .bodyJson()
                     .extractingPath("$.content")
@@ -168,8 +173,58 @@ class PostControllerTest {
         }
 
         @Test
-        void statusFilterReturns401WhenAnonymous() {
-            assertThat(mockMvc.get().uri("/api/posts?status=DRAFT")).hasStatus(HttpStatus.UNAUTHORIZED);
+        @WithMockUser(username = USERNAME)
+        void returnsAllPosts() {
+            var pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
+            Page<PostResponse> page = new PageImpl<>(List.of(response), pageable, 1);
+            when(postService.findMyPosts(null, null, pageable, USERNAME)).thenReturn(page);
+
+            assertThat(mockMvc.get().uri("/api/posts/me"))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.content")
+                    .asArray()
+                    .hasSize(1);
+            verify(postService).findMyPosts(null, null, pageable, USERNAME);
+        }
+
+        @Test
+        @WithMockUser(username = USERNAME)
+        void filtersByCategoryAndStatus() {
+            var pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
+            Page<PostResponse> page = new PageImpl<>(List.of(response), pageable, 1);
+            when(postService.findPostsByStatus(PostStatus.DRAFT, CATEGORY_ID, null, pageable, USERNAME))
+                    .thenReturn(page);
+
+            assertThat(mockMvc.get().uri("/api/posts/me?status=DRAFT&categoryId={id}", CATEGORY_ID))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.content")
+                    .asArray()
+                    .hasSize(1);
+            verify(postService).findPostsByStatus(PostStatus.DRAFT, CATEGORY_ID, null, pageable, USERNAME);
+        }
+
+        @Test
+        @WithMockUser(username = USERNAME)
+        void filtersByTagAndStatus() {
+            var pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
+            Page<PostResponse> page = new PageImpl<>(List.of(response), pageable, 1);
+            when(postService.findPostsByStatus(PostStatus.DRAFT, null, TAG_ID, pageable, USERNAME))
+                    .thenReturn(page);
+
+            assertThat(mockMvc.get().uri("/api/posts/me?status=DRAFT&tagId={id}", TAG_ID))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.content")
+                    .asArray()
+                    .hasSize(1);
+            verify(postService).findPostsByStatus(PostStatus.DRAFT, null, TAG_ID, pageable, USERNAME);
+        }
+
+        @Test
+        void requiresAuthentication() {
+            assertThat(mockMvc.get().uri("/api/posts/me")).hasStatus(HttpStatus.UNAUTHORIZED);
         }
     }
 

@@ -29,14 +29,16 @@ public class TagService {
         return tagRepository.findAll().stream().map(tagMapper::toResponse).toList();
     }
 
-    @Cacheable("tags")
+    @Cacheable("tag")
     public TagResponse findTagById(Long id) {
         log.debug("Fetching tag with id={}", id);
         return tagRepository.findById(id).map(tagMapper::toResponse).orElseThrow(() -> new TagNotFoundException(id));
     }
 
     @Transactional
-    @CacheEvict(value = "tags", allEntries = true)
+    @CacheEvict(
+            value = {"tags", "tag"},
+            allEntries = true)
     public TagResponse createTag(TagRequest request) {
         log.info("Creating tag: name='{}'", request.name());
         Tag entity = tagMapper.toEntity(request);
@@ -47,7 +49,9 @@ public class TagService {
     }
 
     @Transactional
-    @CacheEvict(value = "tags", allEntries = true)
+    @CacheEvict(
+            value = {"tags", "tag"},
+            allEntries = true)
     public TagResponse updateTag(Long id, TagRequest request) {
         log.info("Updating tag with id={}", id);
         Tag existing = tagRepository.findById(id).orElseThrow(() -> new TagNotFoundException(id));
@@ -62,7 +66,9 @@ public class TagService {
     }
 
     @Transactional
-    @CacheEvict(value = "tags", allEntries = true)
+    @CacheEvict(
+            value = {"tags", "tag"},
+            allEntries = true)
     public void deleteTag(Long id) {
         log.info("Deleting tag with id={}", id);
         if (!tagRepository.existsById(id)) {

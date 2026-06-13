@@ -82,6 +82,22 @@ public class PostService {
                 .map(postMapper::toResponse);
     }
 
+    public Page<PostResponse> findMyPosts(Long categoryId, Long tagId, Pageable pageable, String username) {
+        log.debug("Fetching posts for username={}", username);
+        User author = findUserByUsername(username);
+        if (categoryId != null) {
+            return postRepository
+                    .findByAuthorIdAndCategoriesId(author.getId(), categoryId, pageable)
+                    .map(postMapper::toResponse);
+        }
+        if (tagId != null) {
+            return postRepository
+                    .findByAuthorIdAndTagsId(author.getId(), tagId, pageable)
+                    .map(postMapper::toResponse);
+        }
+        return postRepository.findByAuthorId(author.getId(), pageable).map(postMapper::toResponse);
+    }
+
     public Page<PostResponse> findPostsByStatus(
             PostStatus status, Long categoryId, Long tagId, Pageable pageable, String username) {
         log.debug("Fetching posts by status={}, username={}", status, username);

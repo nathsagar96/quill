@@ -31,7 +31,7 @@ public class CategoryService {
                 .toList();
     }
 
-    @Cacheable("categories")
+    @Cacheable("category")
     public CategoryResponse findCategoryById(Long id) {
         log.debug("Fetching category with id={}", id);
         return categoryRepository
@@ -41,7 +41,9 @@ public class CategoryService {
     }
 
     @Transactional
-    @CacheEvict(value = "categories", allEntries = true)
+    @CacheEvict(
+            value = {"categories", "category"},
+            allEntries = true)
     public CategoryResponse createCategory(CategoryRequest request) {
         log.info("Creating category: name='{}'", request.name());
         Category entity = categoryMapper.toEntity(request);
@@ -52,7 +54,9 @@ public class CategoryService {
     }
 
     @Transactional
-    @CacheEvict(value = "categories", allEntries = true)
+    @CacheEvict(
+            value = {"categories", "category"},
+            allEntries = true)
     public CategoryResponse updateCategory(Long id, CategoryRequest request) {
         log.info("Updating category with id={}", id);
         Category existing = categoryRepository.findById(id).orElseThrow(() -> new CategoryNotFoundException(id));
@@ -70,7 +74,9 @@ public class CategoryService {
     }
 
     @Transactional
-    @CacheEvict(value = "categories", allEntries = true)
+    @CacheEvict(
+            value = {"categories", "category"},
+            allEntries = true)
     public void deleteCategory(Long id) {
         log.info("Deleting category with id={}", id);
         if (!categoryRepository.existsById(id)) {

@@ -283,6 +283,68 @@ class PostServiceTest {
     }
 
     @Nested
+    @DisplayName("findMyPosts")
+    class FindMyPosts {
+
+        @Test
+        @DisplayName("returns all posts for the authenticated user")
+        void allPosts() {
+            var pageable = PageRequest.of(0, 10);
+            var page = new PageImpl<>(List.of(draftPost, publishedPost), pageable, 2);
+            when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
+            when(postRepository.findByAuthorId(AUTHOR_ID, pageable)).thenReturn(page);
+            when(postMapper.toResponse(draftPost)).thenReturn(response);
+            when(postMapper.toResponse(publishedPost)).thenReturn(response);
+
+            Page<PostResponse> result = postService.findMyPosts(null, null, pageable, USERNAME);
+
+            assertThat(result.getContent()).hasSize(2);
+            verify(postRepository).findByAuthorId(AUTHOR_ID, pageable);
+        }
+
+        @Test
+        @DisplayName("returns posts filtered by user and category")
+        void byCategory() {
+            var pageable = PageRequest.of(0, 10);
+            var page = new PageImpl<>(List.of(draftPost), pageable, 1);
+            when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
+            when(postRepository.findByAuthorIdAndCategoriesId(AUTHOR_ID, CATEGORY_ID, pageable))
+                    .thenReturn(page);
+            when(postMapper.toResponse(draftPost)).thenReturn(response);
+
+            Page<PostResponse> result = postService.findMyPosts(CATEGORY_ID, null, pageable, USERNAME);
+
+            assertThat(result.getContent()).containsExactly(response);
+            verify(postRepository).findByAuthorIdAndCategoriesId(AUTHOR_ID, CATEGORY_ID, pageable);
+        }
+
+        @Test
+        @DisplayName("returns posts filtered by user and tag")
+        void byTag() {
+            var pageable = PageRequest.of(0, 10);
+            var page = new PageImpl<>(List.of(draftPost), pageable, 1);
+            when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
+            when(postRepository.findByAuthorIdAndTagsId(AUTHOR_ID, TAG_ID, pageable))
+                    .thenReturn(page);
+            when(postMapper.toResponse(draftPost)).thenReturn(response);
+
+            Page<PostResponse> result = postService.findMyPosts(null, TAG_ID, pageable, USERNAME);
+
+            assertThat(result.getContent()).containsExactly(response);
+            verify(postRepository).findByAuthorIdAndTagsId(AUTHOR_ID, TAG_ID, pageable);
+        }
+
+        @Test
+        @DisplayName("throws UserNotFoundException when user does not exist")
+        void userNotFound() {
+            var pageable = PageRequest.of(0, 10);
+            when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.empty());
+
+            assertThrows(UserNotFoundException.class, () -> postService.findMyPosts(null, null, pageable, USERNAME));
+        }
+    }
+
+    @Nested
     @DisplayName("findPostById")
     class FindPostById {
 

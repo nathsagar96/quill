@@ -2,9 +2,9 @@ package com.quill.service;
 
 import java.util.Objects;
 import java.util.function.Predicate;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Component
+@Service
 public class SlugService {
 
     public String generateSlug(String source) {

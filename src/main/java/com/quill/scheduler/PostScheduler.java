@@ -26,6 +26,7 @@ public class PostScheduler {
             post.setStatus(PostStatus.PUBLISHED);
             post.setPublishedAt(Instant.now());
             post.setScheduledAt(null);
+            log.info("Published scheduled post id={}, title='{}'", post.getId(), post.getTitle());
         }
         if (!due.isEmpty()) {
             log.info("Published {} scheduled post(s)", due.size());
