@@ -23,7 +23,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus,metrics,loggers,env,threaddump,heapdump,mappings
+        include: health,info,prometheus
   endpoint:
     health:
       show-details: always
@@ -36,6 +36,8 @@ management:
 
 app:
   base-url: http://localhost:5173
+  openapi:
+    server-url: http://localhost:8080
   cors:
     allowed-origins: http://localhost:5173
   jwt:

@@ -11,20 +11,26 @@
     <groupId>com.quill</groupId>
     <artifactId>quill</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name/>
-    <description/>
-    <url/>
+    <name>quill</name>
+    <description>Spring Boot blog API</description>
+    <url>https://github.com/nathsagar96/quill</url>
     <licenses>
-        <license/>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+        </license>
     </licenses>
     <developers>
-        <developer/>
+        <developer>
+            <name>Sagar Nath</name>
+            <url>https://github.com/nathsagar96</url>
+        </developer>
     </developers>
     <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
+        <connection>scm:git:git@github.com:nathsagar96/quill.git</connection>
+        <developerConnection>scm:git:git@github.com:nathsagar96/quill.git</developerConnection>
+        <tag>HEAD</tag>
+        <url>https://github.com/nathsagar96/quill</url>
     </scm>
     <properties>
         <java.version>25</java.version>

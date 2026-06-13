@@ -3,6 +3,7 @@ package com.quill.service;
 import com.quill.dto.request.UpdateProfileRequest;
 import com.quill.dto.response.AuthorResponse;
 import com.quill.exception.UserNotFoundException;
+import com.quill.mapper.UserMapper;
 import com.quill.model.User;
 import com.quill.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,10 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     public AuthorResponse getProfile(String username) {
         User user = findUserByUsername(username);
-        return toAuthorResponse(user);
+        return userMapper.toAuthorResponse(user);
     }
 
     @Transactional
@@ -37,17 +39,12 @@ public class UserService {
             user.setAvatarUrl(request.avatarUrl());
         }
         log.info("Updated profile for user id={}", user.getId());
-        return toAuthorResponse(user);
+        return userMapper.toAuthorResponse(user);
     }
 
     private User findUserByUsername(String username) {
         return userRepository
                 .findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
-    }
-
-    private AuthorResponse toAuthorResponse(User user) {
-        return new AuthorResponse(
-                user.getId(), user.getUsername(), user.getDisplayName(), user.getBio(), user.getAvatarUrl());
     }
 }

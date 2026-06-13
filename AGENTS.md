@@ -43,9 +43,9 @@
   `@DataJpaTest` slices must `@Import({TestcontainersConfiguration.class, JpaConfig.class})` or
   `@CreatedDate`/`@LastModifiedDate` stay null.
 - `SchedulingConfig` (`@EnableScheduling`) enables `@Scheduled`; `PostScheduler` publishes `SCHEDULED` posts every 60s.
-- `CacheConfig` (`@EnableCaching`) uses Caffeine for `categories` and `tags` (max 100, 1h TTL), and
-  registers `ShallowEtagHeaderFilter` on `/api/categories/*`, `/api/tags/*`, `/api/posts/**`.
-- `CacheControlFilter` sets Cache-Control headers on GET: categories/tags → `max-age=3600, public`,
+- `CacheConfig` (`@EnableCaching`) uses Caffeine for `categories`/`category`/`tags`/`tag` (max 100, 1h TTL),
+  and registers `ShallowEtagHeaderFilter` on `/api/categories/*`, `/api/tags/*`, `/api/posts/**`.
+- `CacheControlFilter` sets Cache-Control on GET: categories/tags → `max-age=3600, public`,
   post lists → `max-age=60, public, stale-while-revalidate=300`, single post → `max-age=60, private`.
 - `GlobalExceptionHandler` extends `ResponseEntityExceptionHandler`, maps `ApplicationException` +
   Spring Security exceptions to RFC 7807 `ProblemDetail`. Handles `MethodArgumentNotValidException`
@@ -56,16 +56,17 @@
 ## Security
 
 - `SecurityConfig` filter chain:
-    - `/api/auth/**`, `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html` — permit all
-    - `/actuator/health`, `/actuator/info`, `/actuator/prometheus` — permit all
-    - `GET /api/posts/me` — authenticated
-    - `GET /api/posts`, `/api/posts/*`, `/api/posts/slug/*`, `/api/categories`, `/api/categories/*`,
-      `/api/tags`, `/api/tags/*` — permit all
-    - `DELETE /api/posts/**`, `/api/categories/**`, `/api/tags/**` — `ROLE_ADMIN`
-    - `/actuator/**` — `ROLE_ADMIN`
-    - Everything else — authenticated
+  - `/api/auth/**`, `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html` — permit all
+  - `/actuator/health`, `/actuator/info`, `/actuator/prometheus` — permit all
+  - `GET /api/posts/me` — authenticated
+  - `GET /api/posts`, `/api/posts/*`, `/api/posts/slug/*`, `/api/categories`, `/api/categories/*`,
+    `/api/tags`, `/api/tags/*` — permit all
+  - `DELETE /api/posts/**`, `/api/categories/**`, `/api/tags/**` — `ROLE_ADMIN`
+  - `/actuator/**` — `ROLE_ADMIN`
+  - Everything else — authenticated
 - CORS allows `http://localhost:5173` (Vite dev server) via `CorsProperties`.
 - JWT: HMAC-SHA via `JwtService`. Signing key from `quill.jwt.secret` (base64 in `application.yaml`, 24h expiry).
+  `JWT_SECRET` env var is **required** at startup — app fails with `IllegalStateException` if unset.
   `JwtAuthenticationFilter` skips `/api/auth/**` via `PathPatternRequestMatcher`, sends 401 on expired/invalid.
 - `PasswordEncoder` is BCrypt. `@EnableMethodSecurity` is on.
 - `Role` enum: `USER` (default), `ADMIN`.
@@ -82,7 +83,7 @@
 - `SlugService.toUniqueSlug(title, entityType, existsBySlug)` generates unique slugs; used by PostService
   on creation and title changes.
 - Fulltext search via `posts.search_vector` tsvector (GIN index, V12). Trigger auto-updates on title/body
-  changes. `PostRepository.searchPosts(query, pageable)` queries via the index.
+  changes. `PostRepository.searchPostIds(query, pageable)` queries via the index.
 - Sealed exception hierarchy: `ApplicationException` permits `CategoryNotFoundException`,
   `CommentNotFoundException`, `DuplicateEmailException`, `DuplicateUsernameException`,
   `EmailVerificationException`, `ForbiddenOperationException`, `PasswordResetTokenException`,
@@ -96,7 +97,8 @@
   and compare with resource owner's field directly, throwing `ForbiddenOperationException` on mismatch.
   Handwritten `@Component` mappers (no MapStruct).
 - Events (`event/`): `UserRegisteredEvent` and `PasswordResetRequestedEvent` are Spring `record`s
-  published via `ApplicationEventPublisher`; listeners in the same service layer handle email dispatch.
+  published via `ApplicationEventPublisher`; `EmailNotificationListener` handles them with
+  `@Async @TransactionalEventListener(phase = AFTER_COMMIT)` — only fires after the publishing tx commits.
 - `application-prod.yaml` provides production overrides: Hikari pool tuning, structured ECS logging,
   Swagger disabled, readiness/liveness probes enabled.
 - New code under `com.quill.*` only.

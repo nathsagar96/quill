@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import com.quill.dto.request.UpdateProfileRequest;
 import com.quill.dto.response.AuthorResponse;
 import com.quill.exception.UserNotFoundException;
+import com.quill.mapper.UserMapper;
 import com.quill.model.User;
 import com.quill.repository.UserRepository;
 import java.util.Optional;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,6 +33,9 @@ class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Spy
+    private UserMapper userMapper = new UserMapper();
 
     @InjectMocks
     private UserService userService;

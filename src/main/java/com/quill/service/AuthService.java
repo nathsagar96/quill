@@ -12,6 +12,7 @@ import com.quill.exception.DuplicateUsernameException;
 import com.quill.exception.EmailVerificationException;
 import com.quill.exception.PasswordResetTokenException;
 import com.quill.exception.RefreshTokenException;
+import com.quill.mapper.AuthMapper;
 import com.quill.model.PasswordResetToken;
 import com.quill.model.RefreshToken;
 import com.quill.model.User;
@@ -50,6 +51,7 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final AuthMapper authMapper;
 
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
@@ -159,7 +161,7 @@ public class AuthService {
 
         String accessToken = jwtService.generateToken(principal);
         String refreshToken = issueRefreshToken(user);
-        return toAuthResponse(accessToken, refreshToken, user);
+        return authMapper.toAuthResponse(accessToken, refreshToken, user);
     }
 
     @Transactional
@@ -190,7 +192,7 @@ public class AuthService {
 
         String accessToken = jwtService.generateToken(userDetails);
         String refreshToken = issueRefreshToken(user);
-        return toAuthResponse(accessToken, refreshToken, user);
+        return authMapper.toAuthResponse(accessToken, refreshToken, user);
     }
 
     @Transactional
@@ -213,18 +215,5 @@ public class AuthService {
                 .build();
         refreshTokenRepository.save(token);
         return token.getToken().toString();
-    }
-
-    private AuthResponse toAuthResponse(String token, String refreshToken, User user) {
-        return new AuthResponse(
-                token,
-                refreshToken,
-                "Bearer",
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getDisplayName(),
-                user.getBio(),
-                user.getAvatarUrl());
     }
 }

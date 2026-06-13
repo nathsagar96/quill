@@ -19,6 +19,7 @@ import com.quill.exception.DuplicateUsernameException;
 import com.quill.exception.EmailVerificationException;
 import com.quill.exception.PasswordResetTokenException;
 import com.quill.exception.RefreshTokenException;
+import com.quill.mapper.AuthMapper;
 import com.quill.model.PasswordResetToken;
 import com.quill.model.RefreshToken;
 import com.quill.model.User;
@@ -39,6 +40,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -75,6 +77,9 @@ class AuthServiceTest {
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
+
+    @Spy
+    private AuthMapper authMapper = new AuthMapper();
 
     @InjectMocks
     private AuthService authService;

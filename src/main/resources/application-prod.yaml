@@ -17,6 +17,10 @@ spring:
           starttls:
             enable: true
 
+app:
+  openapi:
+    server-url: https://api.quill.dev
+
 springdoc:
   api-docs:
     enabled: false

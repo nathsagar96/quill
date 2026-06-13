@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
     @Bean
-    public OpenAPI quillOpenAPI(BuildProperties buildProperties) {
+    public OpenAPI quillOpenAPI(BuildProperties buildProperties, AppProperties appProperties) {
         return new OpenAPI()
                 .info(new Info()
                         .title("Quill API")
@@ -23,7 +23,9 @@ public class OpenApiConfig {
                                 "Blogging platform REST API. Supports posts, comments, categories, tags, authentication, and user profiles.")
                         .version(buildProperties.getVersion())
                         .license(new License().name("MIT").url("https://opensource.org/licenses/MIT")))
-                .addServersItem(new Server().url("http://localhost:8080").description("Local development"))
+                .addServersItem(new Server()
+                        .url(appProperties.openapi().serverUrl())
+                        .description(appProperties.openapi().serverUrl()))
                 .components(new Components()
                         .addSecuritySchemes(
                                 "bearerAuth",

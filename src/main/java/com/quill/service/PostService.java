@@ -190,7 +190,7 @@ public class PostService {
         if (post.getStatus() == PostStatus.PUBLISHED) {
             return postMapper.toResponse(post);
         }
-        if (post.getAuthor().getUsername().equals(username)) {
+        if (username != null && post.getAuthor().getUsername().equals(username)) {
             return postMapper.toResponse(post);
         }
         throw new PostNotFoundException(post.getId());
