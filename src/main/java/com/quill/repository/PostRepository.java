@@ -45,7 +45,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     boolean existsBySlug(String slug);
 
     @Query(value = """
-            SELECT * FROM posts p
+            SELECT p.id FROM posts p
             WHERE p.search_vector @@ websearch_to_tsquery('english', :query)
             AND p.status = 'PUBLISHED'
             ORDER BY ts_rank(p.search_vector, websearch_to_tsquery('english', :query)) DESC
@@ -54,5 +54,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             WHERE p.search_vector @@ websearch_to_tsquery('english', :query)
             AND p.status = 'PUBLISHED'
             """, nativeQuery = true)
-    Page<Post> searchPosts(@Param("query") String query, Pageable pageable);
+    Page<Long> searchPostIds(@Param("query") String query, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"author", "categories", "tags"})
+    List<Post> findByIdIn(List<Long> ids);
 }

@@ -9,6 +9,7 @@ import com.quill.event.PasswordResetRequestedEvent;
 import com.quill.event.UserRegisteredEvent;
 import com.quill.exception.DuplicateEmailException;
 import com.quill.exception.DuplicateUsernameException;
+import com.quill.exception.EmailVerificationException;
 import com.quill.exception.PasswordResetTokenException;
 import com.quill.exception.RefreshTokenException;
 import com.quill.model.PasswordResetToken;
@@ -89,17 +90,16 @@ public class AuthService {
         try {
             tokenUuid = UUID.fromString(token);
         } catch (IllegalArgumentException e) {
-            throw new RefreshTokenException("Invalid verification token");
+            throw new EmailVerificationException("Invalid verification token");
         }
 
         User user = userRepository
                 .findByVerificationToken(tokenUuid)
-                .orElseThrow(() -> new RefreshTokenException("Invalid verification token"));
+                .orElseThrow(() -> new EmailVerificationException("Invalid verification token"));
 
         user.setEnabled(true);
         user.setEmailVerified(true);
         user.setVerificationToken(null);
-        userRepository.save(user);
         log.info("Verified email for user id={}", user.getId());
     }
 
@@ -141,11 +141,9 @@ public class AuthService {
         }
 
         stored.setUsed(true);
-        passwordResetTokenRepository.save(stored);
 
         User user = stored.getUser();
         user.setPasswordHash(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
         log.info("Password reset for user id={}", user.getId());
     }
 
@@ -186,7 +184,6 @@ public class AuthService {
         }
 
         stored.setRevoked(true);
-        refreshTokenRepository.save(stored);
 
         User user = stored.getUser();
         UserDetails userDetails = new CustomUserDetails(user);
@@ -202,7 +199,6 @@ public class AuthService {
             UUID tokenUuid = UUID.fromString(request.refreshToken());
             refreshTokenRepository.findByToken(tokenUuid).ifPresent(token -> {
                 token.setRevoked(true);
-                refreshTokenRepository.save(token);
             });
         } catch (IllegalArgumentException e) {
             // Invalid UUID format — nothing to revoke

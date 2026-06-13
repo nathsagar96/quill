@@ -171,15 +171,18 @@ class PostServiceTest {
         void delegatesAndMaps() {
             var query = "java spring";
             var pageable = PageRequest.of(0, 10);
-            var entityPage = new PageImpl<>(List.of(publishedPost), pageable, 1);
-            when(postRepository.searchPosts(query, pageable)).thenReturn(entityPage);
+            var ids = List.of(publishedPost.getId());
+            var idPage = new PageImpl<>(ids, pageable, 1);
+            when(postRepository.searchPostIds(query, pageable)).thenReturn(idPage);
+            when(postRepository.findByIdIn(ids)).thenReturn(List.of(publishedPost));
             when(postMapper.toResponse(publishedPost)).thenReturn(response);
 
             Page<PostResponse> result = postService.searchPosts(query, pageable);
 
             assertThat(result.getContent()).containsExactly(response);
             assertThat(result.getTotalElements()).isEqualTo(1);
-            verify(postRepository).searchPosts(query, pageable);
+            verify(postRepository).searchPostIds(query, pageable);
+            verify(postRepository).findByIdIn(ids);
             verify(postMapper).toResponse(publishedPost);
         }
 
@@ -188,8 +191,8 @@ class PostServiceTest {
         void returnsEmptyPage() {
             var query = "nonexistent";
             var pageable = PageRequest.of(0, 10);
-            var empty = new PageImpl<>(List.<Post>of(), pageable, 0);
-            when(postRepository.searchPosts(query, pageable)).thenReturn(empty);
+            var empty = new PageImpl<>(List.<Long>of(), pageable, 0);
+            when(postRepository.searchPostIds(query, pageable)).thenReturn(empty);
 
             Page<PostResponse> result = postService.searchPosts(query, pageable);
 

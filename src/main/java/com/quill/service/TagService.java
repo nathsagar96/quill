@@ -36,7 +36,7 @@ public class TagService {
     }
 
     @Transactional
-    @CacheEvict("tags")
+    @CacheEvict(value = "tags", allEntries = true)
     public TagResponse createTag(TagRequest request) {
         log.info("Creating tag: name='{}'", request.name());
         Tag entity = tagMapper.toEntity(request);
@@ -47,7 +47,7 @@ public class TagService {
     }
 
     @Transactional
-    @CacheEvict("tags")
+    @CacheEvict(value = "tags", allEntries = true)
     public TagResponse updateTag(Long id, TagRequest request) {
         log.info("Updating tag with id={}", id);
         Tag existing = tagRepository.findById(id).orElseThrow(() -> new TagNotFoundException(id));
@@ -62,7 +62,7 @@ public class TagService {
     }
 
     @Transactional
-    @CacheEvict("tags")
+    @CacheEvict(value = "tags", allEntries = true)
     public void deleteTag(Long id) {
         log.info("Deleting tag with id={}", id);
         if (!tagRepository.existsById(id)) {

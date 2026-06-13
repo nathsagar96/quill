@@ -41,7 +41,7 @@ public class CategoryService {
     }
 
     @Transactional
-    @CacheEvict("categories")
+    @CacheEvict(value = "categories", allEntries = true)
     public CategoryResponse createCategory(CategoryRequest request) {
         log.info("Creating category: name='{}'", request.name());
         Category entity = categoryMapper.toEntity(request);
@@ -52,7 +52,7 @@ public class CategoryService {
     }
 
     @Transactional
-    @CacheEvict("categories")
+    @CacheEvict(value = "categories", allEntries = true)
     public CategoryResponse updateCategory(Long id, CategoryRequest request) {
         log.info("Updating category with id={}", id);
         Category existing = categoryRepository.findById(id).orElseThrow(() -> new CategoryNotFoundException(id));
@@ -70,7 +70,7 @@ public class CategoryService {
     }
 
     @Transactional
-    @CacheEvict("categories")
+    @CacheEvict(value = "categories", allEntries = true)
     public void deleteCategory(Long id) {
         log.info("Deleting category with id={}", id);
         if (!categoryRepository.existsById(id)) {

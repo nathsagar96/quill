@@ -36,9 +36,8 @@ public class UserService {
         if (request.avatarUrl() != null) {
             user.setAvatarUrl(request.avatarUrl());
         }
-        User saved = userRepository.save(user);
-        log.info("Updated profile for user id={}", saved.getId());
-        return toAuthorResponse(saved);
+        log.info("Updated profile for user id={}", user.getId());
+        return toAuthorResponse(user);
     }
 
     private User findUserByUsername(String username) {

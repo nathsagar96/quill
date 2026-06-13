@@ -84,7 +84,6 @@ class UserServiceTest {
         void updatesAllFields() {
             var request = new UpdateProfileRequest("New Name", "New bio", "https://example.com/new.jpg");
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
-            when(userRepository.save(user)).thenReturn(user);
 
             AuthorResponse result = userService.updateProfile(USERNAME, request);
 
@@ -98,7 +97,6 @@ class UserServiceTest {
         void updatesOnlyDisplayName() {
             var request = new UpdateProfileRequest("New Name", null, null);
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
-            when(userRepository.save(user)).thenReturn(user);
 
             AuthorResponse result = userService.updateProfile(USERNAME, request);
 
@@ -112,7 +110,6 @@ class UserServiceTest {
         void updatesOnlyBio() {
             var request = new UpdateProfileRequest(null, "New bio", null);
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
-            when(userRepository.save(user)).thenReturn(user);
 
             AuthorResponse result = userService.updateProfile(USERNAME, request);
 
@@ -126,7 +123,6 @@ class UserServiceTest {
         void updatesOnlyAvatarUrl() {
             var request = new UpdateProfileRequest(null, null, "https://example.com/new.jpg");
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
-            when(userRepository.save(user)).thenReturn(user);
 
             AuthorResponse result = userService.updateProfile(USERNAME, request);
 

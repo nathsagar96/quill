@@ -9,6 +9,7 @@ public abstract sealed class ApplicationException extends RuntimeException
                 CommentNotFoundException,
                 DuplicateEmailException,
                 DuplicateUsernameException,
+                EmailVerificationException,
                 ForbiddenOperationException,
                 PasswordResetTokenException,
                 PostNotFoundException,

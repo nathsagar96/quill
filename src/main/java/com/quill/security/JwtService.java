@@ -5,31 +5,34 @@ import io.jsonwebtoken.Jwts;
 import java.time.Instant;
 import java.util.Date;
 import javax.crypto.SecretKey;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
 public class JwtService {
 
     private final JwtProperties jwtProperties;
+    private final SecretKey signingKey;
+
+    public JwtService(JwtProperties jwtProperties) {
+        this.jwtProperties = jwtProperties;
+        this.signingKey = jwtProperties.signingKey();
+    }
 
     public String generateToken(UserDetails userDetails) {
         Instant now = Instant.now();
-        SecretKey key = jwtProperties.signingKey();
         return Jwts.builder()
                 .subject(userDetails.getUsername())
                 .issuer("quill")
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(jwtProperties.expiration())))
-                .signWith(key)
+                .signWith(signingKey)
                 .compact();
     }
 
     public String validateToken(String token) {
         return Jwts.parser()
-                .verifyWith(jwtProperties.signingKey())
+                .verifyWith(signingKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()

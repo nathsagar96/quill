@@ -20,11 +20,14 @@ import com.quill.repository.UserRepository;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,7 +56,16 @@ public class PostService {
 
     public Page<PostResponse> searchPosts(String query, Pageable pageable) {
         log.debug("Searching posts: query='{}', page={}", query, pageable.getPageNumber());
-        return postRepository.searchPosts(query, pageable).map(postMapper::toResponse);
+        Page<Long> idPage = postRepository.searchPostIds(query, pageable);
+        if (idPage.isEmpty()) {
+            return Page.empty();
+        }
+        List<Long> ids = idPage.getContent();
+        Map<Long, Post> postMap =
+                postRepository.findByIdIn(ids).stream().collect(Collectors.toMap(Post::getId, Function.identity()));
+        List<PostResponse> ordered =
+                ids.stream().map(postMap::get).map(postMapper::toResponse).toList();
+        return new PageImpl<>(ordered, pageable, idPage.getTotalElements());
     }
 
     public Page<PostResponse> findPostsByCategoryId(Long categoryId, Pageable pageable) {

@@ -30,7 +30,6 @@
   email verification on `users`, `password_reset_tokens`, `status`/`published_at`/`scheduled_at`
   on `posts`, and fulltext search via `search_vector tsvector` with GIN index).
 - `spring.jpa.open-in-view=false`; lazy associations only resolve inside a transactional boundary.
-- `hibernate.jdbc.time_zone: UTC`.
 - Tests use Testcontainers (`postgres:18-alpine`) via `@ServiceConnection` in
   `TestcontainersConfiguration.java` — not `compose.yaml`. Keep image in sync. Requires Docker.
 - Flyway runs in `@DataJpaTest` (`spring-boot-starter-flyway-test`), so repos see real schema.
@@ -88,15 +87,19 @@
   changes. `PostRepository.searchPosts(query, pageable)` queries via the index.
 - Sealed exception hierarchy: `ApplicationException` permits `CategoryNotFoundException`,
   `CommentNotFoundException`, `DuplicateEmailException`, `DuplicateUsernameException`,
-  `ForbiddenOperationException`, `PasswordResetTokenException`, `PostNotFoundException`,
-  `RefreshTokenException`, `TagNotFoundException`, `UserNotFoundException`. New ones must be `final`,
-  extend `ApplicationException`, carry an `HttpStatus`, and join the `permits` clause.
+  `EmailVerificationException`, `ForbiddenOperationException`, `PasswordResetTokenException`,
+  `PostNotFoundException`, `RefreshTokenException`, `TagNotFoundException`, `UserNotFoundException`.
+  New ones must be `final`, extend `ApplicationException`, carry an `HttpStatus`, and join the `permits` clause.
 - Error responses are RFC 7807 `ProblemDetail` (`spring.mvc.problemdetails.enabled=true`). Don't write
   custom JSON bodies.
 - Services: `@Service @RequiredArgsConstructor @Transactional(readOnly = true)` at class level,
   `@Transactional` on writes. Mutate loaded entities and rely on dirty checking — no explicit `save()` on
   updates. Ownership checks use an `isAdmin` boolean from the controller (extracted from
   `Authentication.getAuthorities()`). Handwritten `@Component` mappers (no MapStruct).
+- Events (`event/`): `UserRegisteredEvent` and `PasswordResetRequestedEvent` are Spring `record`s
+  published via `ApplicationEventPublisher`; listeners in the same service layer handle email dispatch.
+- `application-prod.yaml` provides production overrides: Hikari pool tuning, structured ECS logging,
+  Swagger disabled, readiness/liveness probes enabled.
 - New code under `com.quill.*` only.
 
 ## Tests

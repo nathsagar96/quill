@@ -16,6 +16,7 @@ import com.quill.event.PasswordResetRequestedEvent;
 import com.quill.event.UserRegisteredEvent;
 import com.quill.exception.DuplicateEmailException;
 import com.quill.exception.DuplicateUsernameException;
+import com.quill.exception.EmailVerificationException;
 import com.quill.exception.PasswordResetTokenException;
 import com.quill.exception.RefreshTokenException;
 import com.quill.model.PasswordResetToken;
@@ -178,21 +179,20 @@ class AuthServiceTest {
             assertThat(user.isEnabled()).isTrue();
             assertThat(user.isEmailVerified()).isTrue();
             assertThat(user.getVerificationToken()).isNull();
-            verify(userRepository).save(user);
         }
 
         @Test
-        @DisplayName("throws RefreshTokenException for unknown token")
+        @DisplayName("throws EmailVerificationException for unknown token")
         void throwsForUnknownToken() {
             when(userRepository.findByVerificationToken(tokenUuid)).thenReturn(Optional.empty());
 
-            assertThrows(RefreshTokenException.class, () -> authService.verifyEmail(tokenUuid.toString()));
+            assertThrows(EmailVerificationException.class, () -> authService.verifyEmail(tokenUuid.toString()));
         }
 
         @Test
-        @DisplayName("throws RefreshTokenException for invalid UUID format")
+        @DisplayName("throws EmailVerificationException for invalid UUID format")
         void throwsForInvalidUuid() {
-            assertThrows(RefreshTokenException.class, () -> authService.verifyEmail("not-a-uuid"));
+            assertThrows(EmailVerificationException.class, () -> authService.verifyEmail("not-a-uuid"));
         }
     }
 
@@ -314,7 +314,6 @@ class AuthServiceTest {
             authService.logout(new RefreshTokenRequest(tokenUuid.toString()));
 
             assertThat(stored.isRevoked()).isTrue();
-            verify(refreshTokenRepository).save(stored);
         }
 
         @Test
@@ -390,9 +389,7 @@ class AuthServiceTest {
 
             authService.resetPassword(tokenUuid.toString(), NEW_PASSWORD);
 
-            verify(passwordResetTokenRepository).save(storedToken);
             assertThat(storedToken.isUsed()).isTrue();
-            verify(userRepository).save(user);
             assertThat(user.getPasswordHash()).isEqualTo("new-encoded");
         }
 

@@ -321,7 +321,7 @@ class PostRepositoryTest {
     @Test
     @DisplayName("should find published posts matching the query in title")
     void shouldSearchByTitle() {
-        postRepository.saveAndFlush(Post.builder()
+        Post post = postRepository.saveAndFlush(Post.builder()
                 .title("Java Programming Guide")
                 .body("Body of the post")
                 .slug("java-guide")
@@ -329,16 +329,16 @@ class PostRepositoryTest {
                 .status(PostStatus.PUBLISHED)
                 .build());
 
-        Page<Post> result = postRepository.searchPosts("java", PageRequest.of(0, 10));
+        Page<Long> idPage = postRepository.searchPostIds("java", PageRequest.of(0, 10));
 
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().getFirst().getTitle()).isEqualTo("Java Programming Guide");
+        assertThat(idPage.getContent()).hasSize(1);
+        assertThat(idPage.getContent().getFirst()).isEqualTo(post.getId());
     }
 
     @Test
     @DisplayName("should find published posts matching the query in body")
     void shouldSearchByBody() {
-        postRepository.saveAndFlush(Post.builder()
+        Post post = postRepository.saveAndFlush(Post.builder()
                 .title("Random Title")
                 .body("This post is about spring boot and hibernate")
                 .slug("random-title")
@@ -346,10 +346,10 @@ class PostRepositoryTest {
                 .status(PostStatus.PUBLISHED)
                 .build());
 
-        Page<Post> result = postRepository.searchPosts("hibernate", PageRequest.of(0, 10));
+        Page<Long> idPage = postRepository.searchPostIds("hibernate", PageRequest.of(0, 10));
 
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().getFirst().getTitle()).isEqualTo("Random Title");
+        assertThat(idPage.getContent()).hasSize(1);
+        assertThat(idPage.getContent().getFirst()).isEqualTo(post.getId());
     }
 
     @Test
@@ -363,9 +363,9 @@ class PostRepositoryTest {
                 .status(PostStatus.DRAFT)
                 .build());
 
-        Page<Post> result = postRepository.searchPosts("java", PageRequest.of(0, 10));
+        Page<Long> idPage = postRepository.searchPostIds("java", PageRequest.of(0, 10));
 
-        assertThat(result.getContent()).isEmpty();
+        assertThat(idPage.getContent()).isEmpty();
     }
 
     @Test
@@ -379,16 +379,16 @@ class PostRepositoryTest {
                 .status(PostStatus.PUBLISHED)
                 .build());
 
-        Page<Post> result = postRepository.searchPosts("zzzzzzzzzzz", PageRequest.of(0, 10));
+        Page<Long> idPage = postRepository.searchPostIds("zzzzzzzzzzz", PageRequest.of(0, 10));
 
-        assertThat(result.getContent()).isEmpty();
-        assertThat(result.getTotalElements()).isZero();
+        assertThat(idPage.getContent()).isEmpty();
+        assertThat(idPage.getTotalElements()).isZero();
     }
 
     @Test
     @DisplayName("should support phrase search with quoted syntax")
     void shouldSupportPhraseSearch() {
-        postRepository.saveAndFlush(Post.builder()
+        Post post = postRepository.saveAndFlush(Post.builder()
                 .title("Getting Started")
                 .body("This is a spring boot tutorial for beginners")
                 .slug("getting-started")
@@ -396,22 +396,23 @@ class PostRepositoryTest {
                 .status(PostStatus.PUBLISHED)
                 .build());
 
-        Page<Post> result = postRepository.searchPosts("\"spring boot\"", PageRequest.of(0, 10));
+        Page<Long> idPage = postRepository.searchPostIds("\"spring boot\"", PageRequest.of(0, 10));
 
-        assertThat(result.getContent()).hasSize(1);
+        assertThat(idPage.getContent()).hasSize(1);
+        assertThat(idPage.getContent().getFirst()).isEqualTo(post.getId());
     }
 
     @Test
     @DisplayName("should order results by relevance with title matches first")
     void shouldOrderByRelevance() {
-        postRepository.saveAndFlush(Post.builder()
+        Post javaPost = postRepository.saveAndFlush(Post.builder()
                 .title("Java Programming")
                 .body("A comprehensive post about java programming language")
                 .slug("java-programming")
                 .author(author)
                 .status(PostStatus.PUBLISHED)
                 .build());
-        postRepository.saveAndFlush(Post.builder()
+        Post otherPost = postRepository.saveAndFlush(Post.builder()
                 .title("Some Other Post")
                 .body("This post briefly mentions java in passing")
                 .slug("other-post")
@@ -419,9 +420,9 @@ class PostRepositoryTest {
                 .status(PostStatus.PUBLISHED)
                 .build());
 
-        Page<Post> result = postRepository.searchPosts("java", PageRequest.of(0, 10));
+        Page<Long> idPage = postRepository.searchPostIds("java", PageRequest.of(0, 10));
 
-        assertThat(result.getContent()).hasSize(2);
-        assertThat(result.getContent().getFirst().getTitle()).isEqualTo("Java Programming");
+        assertThat(idPage.getContent()).hasSize(2);
+        assertThat(idPage.getContent().getFirst()).isEqualTo(javaPost.getId());
     }
 }
