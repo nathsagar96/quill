@@ -401,8 +401,8 @@ class PostServiceTest {
                     .updatedAt(now)
                     .build();
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
-            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
-            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
+            when(categoryRepository.findAllByIdIn(Set.of(CATEGORY_ID))).thenReturn(List.of(category));
+            when(tagRepository.findAllByIdIn(Set.of(TAG_ID))).thenReturn(List.of(tag));
             when(slugService.toUniqueSlug(eq("New title"), eq("post"), any())).thenReturn("new-title");
             when(postMapper.toEntity(request, author, Set.of(category), Set.of(tag)))
                     .thenReturn(draftPost);
@@ -434,8 +434,8 @@ class PostServiceTest {
                     .updatedAt(now)
                     .build();
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
-            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
-            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
+            when(categoryRepository.findAllByIdIn(Set.of(CATEGORY_ID))).thenReturn(List.of(category));
+            when(tagRepository.findAllByIdIn(Set.of(TAG_ID))).thenReturn(List.of(tag));
             when(slugService.toUniqueSlug(eq("Title"), eq("post"), any())).thenReturn("title");
             when(postMapper.toEntity(pubRequest, author, Set.of(category), Set.of(tag)))
                     .thenReturn(pubPost);
@@ -455,8 +455,8 @@ class PostServiceTest {
             var req = new PostRequest(
                     "Title", "Body", null, Set.of(CATEGORY_ID), Set.of(TAG_ID), PostStatus.SCHEDULED, null);
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
-            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
-            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
+            when(categoryRepository.findAllByIdIn(Set.of(CATEGORY_ID))).thenReturn(List.of(category));
+            when(tagRepository.findAllByIdIn(Set.of(TAG_ID))).thenReturn(List.of(tag));
             var schPost = Post.builder()
                     .id(POST_ID)
                     .title("Title")
@@ -489,8 +489,8 @@ class PostServiceTest {
                     PostStatus.SCHEDULED,
                     Instant.parse("2020-01-01T00:00:00Z"));
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
-            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
-            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
+            when(categoryRepository.findAllByIdIn(Set.of(CATEGORY_ID))).thenReturn(List.of(category));
+            when(tagRepository.findAllByIdIn(Set.of(TAG_ID))).thenReturn(List.of(tag));
             var schPost = Post.builder()
                     .id(POST_ID)
                     .title("Title")
@@ -516,8 +516,8 @@ class PostServiceTest {
         @DisplayName("resolves categories, tags, and author; persists; and returns the mapped response")
         void createsAndReturns() {
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
-            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
-            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
+            when(categoryRepository.findAllByIdIn(Set.of(CATEGORY_ID))).thenReturn(List.of(category));
+            when(tagRepository.findAllByIdIn(Set.of(TAG_ID))).thenReturn(List.of(tag));
             when(slugService.toUniqueSlug(eq("New title"), eq("post"), any())).thenReturn("new-title");
             when(postMapper.toEntity(request, author, Set.of(category), Set.of(tag)))
                     .thenReturn(publishedPost);
@@ -528,8 +528,8 @@ class PostServiceTest {
 
             assertThat(result).isEqualTo(response);
             verify(userRepository).findByUsername(USERNAME);
-            verify(categoryRepository).findById(CATEGORY_ID);
-            verify(tagRepository).findById(TAG_ID);
+            verify(categoryRepository).findAllByIdIn(Set.of(CATEGORY_ID));
+            verify(tagRepository).findAllByIdIn(Set.of(TAG_ID));
             verify(postMapper).toEntity(request, author, Set.of(category), Set.of(tag));
             verify(postRepository).save(publishedPost);
         }
@@ -539,7 +539,7 @@ class PostServiceTest {
         void createsWithNoTags() {
             var requestNoTags = new PostRequest("Title", "Body", null, Set.of(CATEGORY_ID), Set.of(), null, null);
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
-            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
+            when(categoryRepository.findAllByIdIn(Set.of(CATEGORY_ID))).thenReturn(List.of(category));
             when(slugService.toUniqueSlug(eq("Title"), eq("post"), any())).thenReturn("title");
             when(postMapper.toEntity(requestNoTags, author, Set.of(category), Set.of()))
                     .thenReturn(publishedPost);
@@ -548,7 +548,7 @@ class PostServiceTest {
 
             postService.createPost(requestNoTags, USERNAME);
 
-            verify(tagRepository, never()).findById(any());
+            verify(tagRepository, never()).findAllByIdIn(any());
         }
 
         @Test
@@ -566,7 +566,7 @@ class PostServiceTest {
         @DisplayName("throws CategoryNotFoundException when a category does not exist")
         void throwsWhenCategoryMissing() {
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
-            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.empty());
+            when(categoryRepository.findAllByIdIn(Set.of(CATEGORY_ID))).thenReturn(List.of());
 
             assertThrows(CategoryNotFoundException.class, () -> postService.createPost(request, USERNAME));
             verify(postRepository, never()).save(any());
@@ -576,8 +576,8 @@ class PostServiceTest {
         @DisplayName("throws TagNotFoundException when a tag does not exist")
         void throwsWhenTagMissing() {
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(author));
-            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
-            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.empty());
+            when(categoryRepository.findAllByIdIn(Set.of(CATEGORY_ID))).thenReturn(List.of(category));
+            when(tagRepository.findAllByIdIn(Set.of(TAG_ID))).thenReturn(List.of());
 
             assertThrows(TagNotFoundException.class, () -> postService.createPost(request, USERNAME));
             verify(postRepository, never()).save(any());
@@ -592,8 +592,8 @@ class PostServiceTest {
         @DisplayName("allows the owner to update and returns the mapped response")
         void ownerCanUpdate() {
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(publishedPost));
-            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
-            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
+            when(categoryRepository.findAllByIdIn(Set.of(CATEGORY_ID))).thenReturn(List.of(category));
+            when(tagRepository.findAllByIdIn(Set.of(TAG_ID))).thenReturn(List.of(tag));
             when(slugService.toUniqueSlug(eq("New title"), eq("post"), any())).thenReturn("new-title");
             when(postMapper.toResponse(publishedPost)).thenReturn(response);
 
@@ -613,8 +613,8 @@ class PostServiceTest {
             var pubRequest = new PostRequest(
                     "Title", "Body", null, Set.of(CATEGORY_ID), Set.of(TAG_ID), PostStatus.PUBLISHED, null);
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(draftPost));
-            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
-            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
+            when(categoryRepository.findAllByIdIn(Set.of(CATEGORY_ID))).thenReturn(List.of(category));
+            when(tagRepository.findAllByIdIn(Set.of(TAG_ID))).thenReturn(List.of(tag));
             when(postMapper.toResponse(draftPost)).thenReturn(response);
 
             postService.updatePost(POST_ID, pubRequest, USERNAME);
@@ -630,8 +630,8 @@ class PostServiceTest {
             var schRequest = new PostRequest(
                     "Title", "Body", null, Set.of(CATEGORY_ID), Set.of(TAG_ID), PostStatus.SCHEDULED, future);
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(draftPost));
-            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
-            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
+            when(categoryRepository.findAllByIdIn(Set.of(CATEGORY_ID))).thenReturn(List.of(category));
+            when(tagRepository.findAllByIdIn(Set.of(TAG_ID))).thenReturn(List.of(tag));
             when(postMapper.toResponse(draftPost)).thenReturn(response);
 
             postService.updatePost(POST_ID, schRequest, USERNAME);
@@ -646,8 +646,8 @@ class PostServiceTest {
             var schRequest = new PostRequest(
                     "Title", "Body", null, Set.of(CATEGORY_ID), Set.of(TAG_ID), PostStatus.SCHEDULED, null);
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(draftPost));
-            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
-            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
+            when(categoryRepository.findAllByIdIn(Set.of(CATEGORY_ID))).thenReturn(List.of(category));
+            when(tagRepository.findAllByIdIn(Set.of(TAG_ID))).thenReturn(List.of(tag));
 
             assertThrows(
                     ForbiddenOperationException.class, () -> postService.updatePost(POST_ID, schRequest, USERNAME));
@@ -659,8 +659,8 @@ class PostServiceTest {
             var draftRequest =
                     new PostRequest("Title", "Body", null, Set.of(CATEGORY_ID), Set.of(TAG_ID), PostStatus.DRAFT, null);
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(publishedPost));
-            when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
-            when(tagRepository.findById(TAG_ID)).thenReturn(Optional.of(tag));
+            when(categoryRepository.findAllByIdIn(Set.of(CATEGORY_ID))).thenReturn(List.of(category));
+            when(tagRepository.findAllByIdIn(Set.of(TAG_ID))).thenReturn(List.of(tag));
             when(postMapper.toResponse(publishedPost)).thenReturn(response);
 
             postService.updatePost(POST_ID, draftRequest, USERNAME);

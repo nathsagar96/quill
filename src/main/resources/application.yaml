@@ -39,5 +39,6 @@ app:
   cors:
     allowed-origins: http://localhost:5173
   jwt:
-    secret: Y5JIUo3DKKtevtV4LKYcLiLQwU8AkEXNrTMkWuLdZ+g=
+    # Generate a key locally: openssl rand -base64 32
+    secret: ${JWT_SECRET}
     expiration: 24h

@@ -3,7 +3,6 @@ package com.quill.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,6 +12,8 @@ import com.quill.dto.request.RefreshTokenRequest;
 import com.quill.dto.request.RegisterRequest;
 import com.quill.dto.response.AuthResponse;
 import com.quill.dto.response.RegisterResponse;
+import com.quill.event.PasswordResetRequestedEvent;
+import com.quill.event.UserRegisteredEvent;
 import com.quill.exception.DuplicateEmailException;
 import com.quill.exception.DuplicateUsernameException;
 import com.quill.exception.PasswordResetTokenException;
@@ -38,6 +39,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -71,7 +73,7 @@ class AuthServiceTest {
     private PasswordResetTokenRepository passwordResetTokenRepository;
 
     @Mock
-    private EmailService emailService;
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private AuthService authService;
@@ -131,7 +133,7 @@ class AuthServiceTest {
             assertThat(saved.isEmailVerified()).isFalse();
             assertThat(saved.getVerificationToken()).isNotNull();
 
-            verify(emailService).sendVerificationEmail(eq(EMAIL), any(String.class));
+            verify(eventPublisher).publishEvent(any(UserRegisteredEvent.class));
         }
 
         @Test
@@ -345,7 +347,7 @@ class AuthServiceTest {
             authService.forgotPassword(EMAIL);
 
             verify(passwordResetTokenRepository).save(any(PasswordResetToken.class));
-            verify(emailService).sendPasswordResetEmail(eq(EMAIL), any(String.class));
+            verify(eventPublisher).publishEvent(any(PasswordResetRequestedEvent.class));
         }
 
         @Test
@@ -356,7 +358,7 @@ class AuthServiceTest {
             authService.forgotPassword(EMAIL);
 
             verify(passwordResetTokenRepository, never()).save(any());
-            verify(emailService, never()).sendPasswordResetEmail(any(), any());
+            verify(eventPublisher, never()).publishEvent(any());
         }
     }
 

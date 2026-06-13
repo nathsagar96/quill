@@ -18,6 +18,8 @@ import com.quill.repository.PostRepository;
 import com.quill.repository.TagRepository;
 import com.quill.repository.UserRepository;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -218,13 +220,18 @@ public class PostService {
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
     }
 
-    private Set<Category> resolveCategories(Set<Long> categoryIds) {
-        if (categoryIds == null || categoryIds.isEmpty()) {
+    private Set<Category> resolveCategories(Set<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
             return Set.of();
         }
-        return categoryIds.stream()
-                .map(cid -> categoryRepository.findById(cid).orElseThrow(() -> new CategoryNotFoundException(cid)))
-                .collect(Collectors.toSet());
+        List<Category> found = categoryRepository.findAllByIdIn(ids);
+        if (found.size() != ids.size()) {
+            Set<Long> foundIds = found.stream().map(Category::getId).collect(Collectors.toSet());
+            ids.stream().filter(id -> !foundIds.contains(id)).findFirst().ifPresent(id -> {
+                throw new CategoryNotFoundException(id);
+            });
+        }
+        return new HashSet<>(found);
     }
 
     private String generateExcerpt(String body) {
@@ -242,12 +249,17 @@ public class PostService {
         return cleaned.substring(0, lastSpace) + "...";
     }
 
-    private Set<Tag> resolveTags(Set<Long> tagIds) {
-        if (tagIds == null || tagIds.isEmpty()) {
+    private Set<Tag> resolveTags(Set<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
             return Set.of();
         }
-        return tagIds.stream()
-                .map(tid -> tagRepository.findById(tid).orElseThrow(() -> new TagNotFoundException(tid)))
-                .collect(Collectors.toSet());
+        List<Tag> found = tagRepository.findAllByIdIn(ids);
+        if (found.size() != ids.size()) {
+            Set<Long> foundIds = found.stream().map(Tag::getId).collect(Collectors.toSet());
+            ids.stream().filter(id -> !foundIds.contains(id)).findFirst().ifPresent(id -> {
+                throw new TagNotFoundException(id);
+            });
+        }
+        return new HashSet<>(found);
     }
 }

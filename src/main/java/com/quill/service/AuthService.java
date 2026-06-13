@@ -5,6 +5,8 @@ import com.quill.dto.request.RefreshTokenRequest;
 import com.quill.dto.request.RegisterRequest;
 import com.quill.dto.response.AuthResponse;
 import com.quill.dto.response.RegisterResponse;
+import com.quill.event.PasswordResetRequestedEvent;
+import com.quill.event.UserRegisteredEvent;
 import com.quill.exception.DuplicateEmailException;
 import com.quill.exception.DuplicateUsernameException;
 import com.quill.exception.PasswordResetTokenException;
@@ -22,6 +24,7 @@ import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -45,7 +48,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
-    private final EmailService emailService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
@@ -75,7 +78,7 @@ public class AuthService {
         User saved = userRepository.save(user);
         log.info("Registered user with id={}", saved.getId());
 
-        emailService.sendVerificationEmail(saved.getEmail(), verificationToken);
+        eventPublisher.publishEvent(new UserRegisteredEvent(saved.getEmail(), verificationToken));
 
         return new RegisterResponse("Registration successful. Please check your email to verify your account.");
     }
@@ -111,8 +114,8 @@ public class AuthService {
                     .expiresAt(Instant.now().plus(PASSWORD_RESET_EXPIRY))
                     .build();
             passwordResetTokenRepository.save(token);
-            emailService.sendPasswordResetEmail(
-                    user.getEmail(), token.getToken().toString());
+            eventPublisher.publishEvent(new PasswordResetRequestedEvent(
+                    user.getEmail(), token.getToken().toString()));
         });
     }
 
@@ -146,6 +149,7 @@ public class AuthService {
         log.info("Password reset for user id={}", user.getId());
     }
 
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         log.info("Login attempt: username='{}'", request.username());
 
