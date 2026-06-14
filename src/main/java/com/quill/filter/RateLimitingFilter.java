@@ -1,24 +1,24 @@
 package com.quill.filter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.quill.config.RateLimitProperties;
 import com.quill.config.RateLimitProperties.BandwidthConfig;
 import com.quill.config.RateLimitProperties.EndpointConfig;
-import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
+import io.github.bucket4j.BucketConfiguration;
 import io.github.bucket4j.ConsumptionProbe;
+import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import org.jspecify.annotations.NonNull;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +28,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.ObjectMapper;
 
 @Configuration
 public class RateLimitingFilter {
@@ -35,22 +36,19 @@ public class RateLimitingFilter {
     private static final List<String> SKIP_PATHS = List.of("/actuator", "/swagger-ui", "/v3/api-docs", "/api-docs");
 
     private final RateLimitProperties properties;
-    private final Cache<String, Bucket> bucketCache;
+    private final LettuceBasedProxyManager<byte[]> proxyManager;
 
-    public RateLimitingFilter(RateLimitProperties properties) {
+    public RateLimitingFilter(RateLimitProperties properties, LettuceBasedProxyManager<byte[]> proxyManager) {
         this.properties = properties;
-        this.bucketCache = Caffeine.newBuilder()
-                .maximumSize(10_000)
-                .expireAfterWrite(1, TimeUnit.HOURS)
-                .build();
+        this.proxyManager = proxyManager;
     }
 
     @Bean
-    public FilterRegistrationBean<OncePerRequestFilter> rateLimitingFilter(ObjectMapper objectMapper) {
+    public FilterRegistrationBean<OncePerRequestFilter> rateLimitingFilterRegistration(ObjectMapper objectMapper) {
         OncePerRequestFilter filter = new OncePerRequestFilter() {
 
             @Override
-            protected boolean shouldNotFilter(HttpServletRequest request) {
+            protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
                 if (!properties.enabled()) {
                     return true;
                 }
@@ -59,7 +57,10 @@ public class RateLimitingFilter {
             }
 
             @Override
-            protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+            protected void doFilterInternal(
+                    @NonNull HttpServletRequest request,
+                    @NonNull HttpServletResponse response,
+                    @NonNull FilterChain chain)
                     throws ServletException, IOException {
 
                 EndpointConfig config = findMatchingConfig(request);
@@ -69,7 +70,8 @@ public class RateLimitingFilter {
                 }
 
                 String cacheKey = resolveCacheKey(request, config);
-                Bucket bucket = bucketCache.get(cacheKey, k -> createBucket(config));
+                Bucket bucket =
+                        proxyManager.getProxy(cacheKey.getBytes(StandardCharsets.UTF_8), () -> toConfiguration(config));
 
                 ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
                 if (probe.isConsumed()) {
@@ -124,34 +126,6 @@ public class RateLimitingFilter {
                     case COMBINED -> username != null ? ip + ":" + username : ip;
                 };
             }
-
-            private Bucket createBucket(EndpointConfig config) {
-                List<BandwidthConfig> bandwidths = config.bandwidths();
-                if (bandwidths.isEmpty() && properties.defaults() != null) {
-                    bandwidths = List.of(properties.defaults());
-                }
-                var builder = Bucket.builder();
-                for (BandwidthConfig bw : bandwidths) {
-                    builder.addLimit(toBandwidth(bw));
-                }
-                return builder.build();
-            }
-
-            private Bandwidth toBandwidth(BandwidthConfig config) {
-                Duration period = config.toDuration();
-                return switch (config.refillSpeed()) {
-                    case GREEDY ->
-                        Bandwidth.builder()
-                                .capacity(config.capacity())
-                                .refillGreedy(config.refill(), period)
-                                .build();
-                    case INTERVAL ->
-                        Bandwidth.builder()
-                                .capacity(config.capacity())
-                                .refillIntervally(config.refill(), period)
-                                .build();
-                };
-            }
         };
 
         FilterRegistrationBean<OncePerRequestFilter> bean = new FilterRegistrationBean<>();
@@ -160,5 +134,21 @@ public class RateLimitingFilter {
         bean.setName("rateLimitingFilter");
         bean.setOrder(2);
         return bean;
+    }
+
+    private BucketConfiguration toConfiguration(EndpointConfig config) {
+        List<BandwidthConfig> bandwidths = config.bandwidths();
+        if (bandwidths.isEmpty() && properties.defaults() != null) {
+            bandwidths = List.of(properties.defaults());
+        }
+        var builder = BucketConfiguration.builder();
+        for (BandwidthConfig bw : bandwidths) {
+            Duration period = bw.toDuration();
+            builder.addLimit(limit -> switch (bw.refillSpeed()) {
+                case GREEDY -> limit.capacity(bw.capacity()).refillGreedy(bw.refill(), period);
+                case INTERVAL -> limit.capacity(bw.capacity()).refillIntervally(bw.refill(), period);
+            });
+        }
+        return builder.build();
     }
 }
