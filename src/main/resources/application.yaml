@@ -44,3 +44,26 @@ app:
     # Generate a key locally: openssl rand -base64 32
     secret: ${JWT_SECRET}
     expiration: 24h
+  rate-limit:
+    enabled: true
+    defaults:
+      capacity: 100
+      refill: 100
+      refill-unit: minutes
+    endpoints:
+      - pattern: /api/auth/**
+        cache-key: ip
+        bandwidths:
+          - capacity: 5
+            refill: 5
+            refill-unit: minutes
+      - pattern: /api/**
+        cache-key: username
+        bandwidths:
+          - capacity: 100
+            refill: 100
+            refill-unit: minutes
+          - capacity: 10
+            refill: 10
+            refill-unit: seconds
+            refill-speed: greedy

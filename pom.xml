@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.6</version>
+        <version>4.0.7</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.quill</groupId>
@@ -37,6 +37,7 @@
         <jjwt.version>0.13.0</jjwt.version>
         <spotless.version>3.6.0</spotless.version>
         <springdoc.version>3.0.3</springdoc.version>
+        <bucket4j.version>8.19.0</bucket4j.version>
     </properties>
     <dependencies>
         <dependency>
@@ -75,6 +76,12 @@
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j_jdk17-core</artifactId>
+            <version>${bucket4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
