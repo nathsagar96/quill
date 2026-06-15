@@ -215,7 +215,6 @@ class CommentServiceTest {
     @DisplayName("updateComment")
     class UpdateComment {
 
-        private static final Long OTHER_USER_ID = 2L;
         private static final String OTHER_USERNAME = "bob";
 
         @Test

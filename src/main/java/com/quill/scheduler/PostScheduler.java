@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ public class PostScheduler {
     private final PostRepository postRepository;
 
     @Scheduled(fixedRate = 60_000)
+    @SchedulerLock(name = "publishScheduledPosts", lockAtMostFor = "2m", lockAtLeastFor = "1m")
     @Transactional
     public void publishScheduledPosts() {
         List<Post> due = postRepository.findByStatusAndScheduledAtBefore(PostStatus.SCHEDULED, Instant.now());
