@@ -166,15 +166,11 @@ class CommentServiceTest {
         @DisplayName("throws PostNotFoundException when the post is not PUBLISHED")
         void throwsWhenPostIsDraft() {
             var pageable = PageRequest.of(0, 20);
-            var draftPost = Post.builder()
-                    .id(POST_ID)
-                    .status(PostStatus.DRAFT)
-                    .build();
+            var draftPost = Post.builder().id(POST_ID).status(PostStatus.DRAFT).build();
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(draftPost));
 
             var thrown = assertThrows(
-                    PostNotFoundException.class,
-                    () -> commentService.findAllCommentsByPostId(POST_ID, pageable));
+                    PostNotFoundException.class, () -> commentService.findAllCommentsByPostId(POST_ID, pageable));
             assertThat(thrown).hasMessageContaining(String.valueOf(POST_ID));
 
             verify(commentRepository, never()).findByPostId(any(), any());
@@ -233,10 +229,7 @@ class CommentServiceTest {
         @Test
         @DisplayName("throws PostNotFoundException when the post is not PUBLISHED")
         void throwsWhenPostIsDraft() {
-            var draftPost = Post.builder()
-                    .id(POST_ID)
-                    .status(PostStatus.DRAFT)
-                    .build();
+            var draftPost = Post.builder().id(POST_ID).status(PostStatus.DRAFT).build();
             when(postRepository.findById(POST_ID)).thenReturn(Optional.of(draftPost));
 
             var thrown = assertThrows(
