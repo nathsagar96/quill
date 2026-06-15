@@ -17,6 +17,7 @@ import com.quill.exception.UserNotFoundException;
 import com.quill.mapper.CommentMapper;
 import com.quill.model.Comment;
 import com.quill.model.Post;
+import com.quill.model.PostStatus;
 import com.quill.model.User;
 import com.quill.repository.CommentRepository;
 import com.quill.repository.PostRepository;
@@ -75,6 +76,7 @@ class CommentServiceTest {
                 .title("Post")
                 .body("...")
                 .author(author)
+                .status(PostStatus.PUBLISHED)
                 .build();
         comment = Comment.builder()
                 .id(COMMENT_ID)
@@ -118,7 +120,7 @@ class CommentServiceTest {
                     Instant.parse("2024-01-01T01:00:00Z"),
                     Instant.parse("2024-01-01T01:00:00Z"));
             var page = new PageImpl<>(List.of(comment, other), pageable, 2);
-            when(postRepository.existsById(POST_ID)).thenReturn(true);
+            when(postRepository.findById(POST_ID)).thenReturn(Optional.of(post));
             when(commentRepository.findByPostId(POST_ID, pageable)).thenReturn(page);
             when(commentMapper.toResponse(comment)).thenReturn(response);
             when(commentMapper.toResponse(other)).thenReturn(otherResponse);
@@ -127,7 +129,7 @@ class CommentServiceTest {
 
             assertThat(result.getContent()).containsExactly(response, otherResponse);
             assertThat(result.getTotalElements()).isEqualTo(2);
-            verify(postRepository).existsById(POST_ID);
+            verify(postRepository).findById(POST_ID);
             verify(commentRepository).findByPostId(POST_ID, pageable);
         }
 
@@ -136,13 +138,13 @@ class CommentServiceTest {
         void returnsEmptyPage() {
             var pageable = PageRequest.of(0, 20);
             var empty = new PageImpl<>(List.<Comment>of(), pageable, 0);
-            when(postRepository.existsById(POST_ID)).thenReturn(true);
+            when(postRepository.findById(POST_ID)).thenReturn(Optional.of(post));
             when(commentRepository.findByPostId(POST_ID, pageable)).thenReturn(empty);
 
             Page<CommentResponse> result = commentService.findAllCommentsByPostId(POST_ID, pageable);
 
             assertThat(result.getContent()).isEmpty();
-            verify(postRepository).existsById(POST_ID);
+            verify(postRepository).findById(POST_ID);
             verify(commentMapper, never()).toResponse(any());
         }
 
@@ -150,12 +152,30 @@ class CommentServiceTest {
         @DisplayName("throws PostNotFoundException when the post does not exist")
         void throwsWhenPostMissing() {
             var pageable = PageRequest.of(0, 20);
-            when(postRepository.existsById(MISSING_POST_ID)).thenReturn(false);
+            when(postRepository.findById(MISSING_POST_ID)).thenReturn(Optional.empty());
 
             var thrown = assertThrows(
                     PostNotFoundException.class,
                     () -> commentService.findAllCommentsByPostId(MISSING_POST_ID, pageable));
             assertThat(thrown).hasMessageContaining(String.valueOf(MISSING_POST_ID));
+
+            verify(commentRepository, never()).findByPostId(any(), any());
+        }
+
+        @Test
+        @DisplayName("throws PostNotFoundException when the post is not PUBLISHED")
+        void throwsWhenPostIsDraft() {
+            var pageable = PageRequest.of(0, 20);
+            var draftPost = Post.builder()
+                    .id(POST_ID)
+                    .status(PostStatus.DRAFT)
+                    .build();
+            when(postRepository.findById(POST_ID)).thenReturn(Optional.of(draftPost));
+
+            var thrown = assertThrows(
+                    PostNotFoundException.class,
+                    () -> commentService.findAllCommentsByPostId(POST_ID, pageable));
+            assertThat(thrown).hasMessageContaining(String.valueOf(POST_ID));
 
             verify(commentRepository, never()).findByPostId(any(), any());
         }
@@ -207,6 +227,23 @@ class CommentServiceTest {
                     UserNotFoundException.class, () -> commentService.createComment(request, POST_ID, USERNAME));
             assertThat(thrown).hasMessageContaining(USERNAME);
 
+            verify(commentRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("throws PostNotFoundException when the post is not PUBLISHED")
+        void throwsWhenPostIsDraft() {
+            var draftPost = Post.builder()
+                    .id(POST_ID)
+                    .status(PostStatus.DRAFT)
+                    .build();
+            when(postRepository.findById(POST_ID)).thenReturn(Optional.of(draftPost));
+
+            var thrown = assertThrows(
+                    PostNotFoundException.class, () -> commentService.createComment(request, POST_ID, USERNAME));
+            assertThat(thrown).hasMessageContaining(String.valueOf(POST_ID));
+
+            verify(userRepository, never()).findByUsername(any());
             verify(commentRepository, never()).save(any());
         }
     }

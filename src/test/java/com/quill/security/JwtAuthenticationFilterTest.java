@@ -1,8 +1,6 @@
 package com.quill.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -75,12 +73,13 @@ class JwtAuthenticationFilterTest {
         }
 
         @Test
-        @DisplayName("skips GET /api/posts/**")
-        void skipsGetPosts() {
-            assertThat(filter.shouldNotFilter(request("GET", "/api/posts"))).isTrue();
-            assertThat(filter.shouldNotFilter(request("GET", "/api/posts/1"))).isTrue();
+        @DisplayName("does not skip GET /api/posts/** paths")
+        void doesNotSkipGetPosts() {
+            assertThat(filter.shouldNotFilter(request("GET", "/api/posts"))).isFalse();
+            assertThat(filter.shouldNotFilter(request("GET", "/api/posts/1"))).isFalse();
             assertThat(filter.shouldNotFilter(request("GET", "/api/posts/slug/hello")))
-                    .isTrue();
+                    .isFalse();
+            assertThat(filter.shouldNotFilter(request("GET", "/api/posts/me"))).isFalse();
         }
 
         @Test
@@ -96,19 +95,19 @@ class JwtAuthenticationFilterTest {
         }
 
         @Test
-        @DisplayName("skips GET /api/categories/**")
-        void skipsGetCategories() {
+        @DisplayName("does not skip GET /api/categories/**")
+        void doesNotSkipGetCategories() {
             assertThat(filter.shouldNotFilter(request("GET", "/api/categories")))
-                    .isTrue();
+                    .isFalse();
             assertThat(filter.shouldNotFilter(request("GET", "/api/categories/1")))
-                    .isTrue();
+                    .isFalse();
         }
 
         @Test
-        @DisplayName("skips GET /api/tags/**")
-        void skipsGetTags() {
-            assertThat(filter.shouldNotFilter(request("GET", "/api/tags"))).isTrue();
-            assertThat(filter.shouldNotFilter(request("GET", "/api/tags/1"))).isTrue();
+        @DisplayName("does not skip GET /api/tags/**")
+        void doesNotSkipGetTags() {
+            assertThat(filter.shouldNotFilter(request("GET", "/api/tags"))).isFalse();
+            assertThat(filter.shouldNotFilter(request("GET", "/api/tags/1"))).isFalse();
         }
     }
 
@@ -157,9 +156,28 @@ class JwtAuthenticationFilterTest {
         }
 
         @Test
-        @DisplayName("returns 401 when token is expired")
-        void returns401ForExpiredToken() throws Exception {
-            var req = request("GET", "/api/users/me");
+        @DisplayName("sets authentication on GET /api/posts/me for a valid token")
+        void setsAuthenticationOnPostsMe() throws Exception {
+            var req = request("GET", "/api/posts/me");
+            req.addHeader("Authorization", "Bearer valid-token");
+
+            UserDetails userDetails =
+                    User.withUsername("alice").password("pw").roles("USER").build();
+            when(jwtService.validateToken("valid-token")).thenReturn("alice");
+            when(userDetailsService.loadUserByUsername("alice")).thenReturn(userDetails);
+
+            filter.doFilter(req, response, chain);
+
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            assertThat(auth).isNotNull();
+            assertThat(auth.getName()).isEqualTo("alice");
+            verify(chain).doFilter(req, response);
+        }
+
+        @Test
+        @DisplayName("continues chain when token is expired")
+        void continuesOnExpiredToken() throws Exception {
+            var req = request("GET", "/api/posts/1");
             req.addHeader("Authorization", "Bearer expired-token");
 
             when(jwtService.validateToken("expired-token"))
@@ -167,30 +185,28 @@ class JwtAuthenticationFilterTest {
 
             filter.doFilter(req, response, chain);
 
-            assertThat(response.getStatus()).isEqualTo(401);
-            assertThat(response.getErrorMessage()).isEqualTo("Token expired");
-            verify(chain, never()).doFilter(any(), any());
+            verify(chain).doFilter(req, response);
+            assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         }
 
         @Test
-        @DisplayName("returns 401 when token is invalid")
-        void returns401ForInvalidToken() throws Exception {
-            var req = request("GET", "/api/users/me");
+        @DisplayName("continues chain when token is invalid")
+        void continuesOnInvalidToken() throws Exception {
+            var req = request("GET", "/api/posts/1");
             req.addHeader("Authorization", "Bearer invalid-token");
 
             when(jwtService.validateToken("invalid-token")).thenThrow(new JwtException("Invalid token"));
 
             filter.doFilter(req, response, chain);
 
-            assertThat(response.getStatus()).isEqualTo(401);
-            assertThat(response.getErrorMessage()).isEqualTo("Invalid token");
-            verify(chain, never()).doFilter(any(), any());
+            verify(chain).doFilter(req, response);
+            assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         }
 
         @Test
-        @DisplayName("returns 401 when user is not found")
-        void returns401ForUserNotFound() throws Exception {
-            var req = request("GET", "/api/users/me");
+        @DisplayName("continues chain when user is not found")
+        void continuesOnUserNotFound() throws Exception {
+            var req = request("GET", "/api/posts/1");
             req.addHeader("Authorization", "Bearer valid-token");
 
             when(jwtService.validateToken("valid-token")).thenReturn("unknown");
@@ -199,9 +215,8 @@ class JwtAuthenticationFilterTest {
 
             filter.doFilter(req, response, chain);
 
-            assertThat(response.getStatus()).isEqualTo(401);
-            assertThat(response.getErrorMessage()).isEqualTo("Authentication failed");
-            verify(chain, never()).doFilter(any(), any());
+            verify(chain).doFilter(req, response);
+            assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         }
     }
 }

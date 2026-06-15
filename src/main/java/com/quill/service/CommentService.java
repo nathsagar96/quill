@@ -5,6 +5,7 @@ import com.quill.dto.response.CommentResponse;
 import com.quill.exception.CommentNotFoundException;
 import com.quill.exception.ForbiddenOperationException;
 import com.quill.exception.PostNotFoundException;
+import com.quill.model.PostStatus;
 import com.quill.exception.UserNotFoundException;
 import com.quill.mapper.CommentMapper;
 import com.quill.model.Comment;
@@ -37,16 +38,14 @@ public class CommentService {
                 postId,
                 pageable.getPageNumber(),
                 pageable.getPageSize());
-        if (!postRepository.existsById(postId)) {
-            throw new PostNotFoundException(postId);
-        }
+        findPublishedPostById(postId);
         return commentRepository.findByPostId(postId, pageable).map(commentMapper::toResponse);
     }
 
     @Transactional
     public CommentResponse createComment(CommentRequest request, Long postId, String username) {
         log.info("Creating comment: postId={}, username='{}'", postId, username);
-        Post post = findPostById(postId);
+        Post post = findPublishedPostById(postId);
         User author = findUserByUsername(username);
         Comment entity = commentMapper.toEntity(request, post, author);
         Comment saved = commentRepository.save(entity);
@@ -78,8 +77,12 @@ public class CommentService {
         return commentRepository.findByIdAndPostId(id, postId).orElseThrow(() -> new CommentNotFoundException(id));
     }
 
-    private Post findPostById(Long id) {
-        return postRepository.findById(id).orElseThrow(() -> new PostNotFoundException(id));
+    private Post findPublishedPostById(Long id) {
+        Post post = postRepository.findById(id).orElseThrow(() -> new PostNotFoundException(id));
+        if (post.getStatus() != PostStatus.PUBLISHED) {
+            throw new PostNotFoundException(id);
+        }
+        return post;
     }
 
     private User findUserByUsername(String username) {

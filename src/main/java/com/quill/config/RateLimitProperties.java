@@ -31,11 +31,11 @@ public record RateLimitProperties(boolean enabled, BandwidthConfig defaults, Lis
     }
 
     public record BandwidthConfig(
-            @Positive int capacity, @Positive int refill, TimeUnit timeUnit, RefillSpeed refillSpeed) {
+            @Positive int capacity, @Positive int refill, Duration refillPeriod, RefillSpeed refillSpeed) {
 
         public BandwidthConfig {
-            if (timeUnit == null) {
-                timeUnit = TimeUnit.MINUTES;
+            if (refillPeriod == null) {
+                refillPeriod = Duration.ofMinutes(1);
             }
             if (refillSpeed == null) {
                 refillSpeed = RefillSpeed.GREEDY;
@@ -43,11 +43,7 @@ public record RateLimitProperties(boolean enabled, BandwidthConfig defaults, Lis
         }
 
         public Duration toDuration() {
-            return switch (timeUnit) {
-                case SECONDS -> Duration.ofSeconds(refill);
-                case MINUTES -> Duration.ofMinutes(refill);
-                case HOURS -> Duration.ofHours(refill);
-            };
+            return refillPeriod;
         }
     }
 
@@ -55,12 +51,6 @@ public record RateLimitProperties(boolean enabled, BandwidthConfig defaults, Lis
         IP,
         USERNAME,
         COMBINED
-    }
-
-    public enum TimeUnit {
-        SECONDS,
-        MINUTES,
-        HOURS
     }
 
     public enum RefillSpeed {

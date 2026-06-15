@@ -58,21 +58,21 @@ app:
     defaults:
       capacity: 100
       refill: 100
-      refill-unit: minutes
+      refill-period: 1m
     endpoints:
       - pattern: /api/auth/**
         cache-key: ip
         bandwidths:
           - capacity: 5
             refill: 5
-            refill-unit: minutes
+            refill-period: 1m
       - pattern: /api/**
         cache-key: username
         bandwidths:
           - capacity: 100
             refill: 100
-            refill-unit: minutes
+            refill-period: 1m
           - capacity: 10
             refill: 10
-            refill-unit: seconds
+            refill-period: 1s
             refill-speed: greedy

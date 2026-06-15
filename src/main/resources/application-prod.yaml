@@ -18,6 +18,9 @@ spring:
             enable: true
 
 app:
+  base-url: https://quill.dev
+  cors:
+    allowed-origins: https://quill.dev
   openapi:
     server-url: https://api.quill.dev
 

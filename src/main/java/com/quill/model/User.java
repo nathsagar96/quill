@@ -72,6 +72,9 @@ public class User {
     @Column(name = "verification_token")
     private UUID verificationToken;
 
+    @Column(name = "verification_token_expires_at")
+    private Instant verificationTokenExpiresAt;
+
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Post> posts = new ArrayList<>();

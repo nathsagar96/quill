@@ -76,6 +76,7 @@ public class AuthService {
                 .enabled(false)
                 .emailVerified(false)
                 .verificationToken(UUID.fromString(verificationToken))
+                .verificationTokenExpiresAt(Instant.now().plus(Duration.ofHours(24)))
                 .build();
 
         User saved = userRepository.save(user);
@@ -99,9 +100,17 @@ public class AuthService {
                 .findByVerificationToken(tokenUuid)
                 .orElseThrow(() -> new EmailVerificationException("Invalid verification token"));
 
+        if (user.getVerificationTokenExpiresAt() != null
+                && Instant.now().isAfter(user.getVerificationTokenExpiresAt())) {
+            user.setVerificationToken(null);
+            user.setVerificationTokenExpiresAt(null);
+            throw new EmailVerificationException("Verification token has expired");
+        }
+
         user.setEnabled(true);
         user.setEmailVerified(true);
         user.setVerificationToken(null);
+        user.setVerificationTokenExpiresAt(null);
         log.info("Verified email for user id={}", user.getId());
     }
 

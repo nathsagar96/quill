@@ -69,7 +69,7 @@ public class EmailService {
                   <h2>Reset your password</h2>
                   <p>Click the link below to reset your password:</p>
                   <p><a href="%s">Reset password</a></p>
-                  <p>This link expires in 24 hours. If you did not request this, you can ignore this email.</p>
+                  <p>This link expires in 1 hour. If you did not request this, you can ignore this email.</p>
                 </body>
                 </html>
                 """.formatted(link);

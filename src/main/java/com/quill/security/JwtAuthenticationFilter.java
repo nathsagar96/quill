@@ -8,9 +8,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,24 +19,16 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @RequiredArgsConstructor
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final PathPatternRequestMatcher SKIP_AUTH = PathPatternRequestMatcher.pathPattern("/api/auth/**");
-    private static final PathPatternRequestMatcher SKIP_GET_POSTS =
-            PathPatternRequestMatcher.pathPattern(HttpMethod.GET, "/api/posts/**");
-    private static final PathPatternRequestMatcher SKIP_GET_CATEGORIES =
-            PathPatternRequestMatcher.pathPattern(HttpMethod.GET, "/api/categories/**");
-    private static final PathPatternRequestMatcher SKIP_GET_TAGS =
-            PathPatternRequestMatcher.pathPattern(HttpMethod.GET, "/api/tags/**");
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
     @Override
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
-        return SKIP_AUTH.matches(request)
-                || SKIP_GET_POSTS.matches(request)
-                || SKIP_GET_CATEGORIES.matches(request)
-                || SKIP_GET_TAGS.matches(request);
+        return SKIP_AUTH.matches(request);
     }
 
     @Override
@@ -62,14 +54,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (ExpiredJwtException e) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
-            return;
+            log.warn("Expired JWT token: {}", e.getMessage());
         } catch (JwtException e) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
-            return;
+            log.warn("Invalid JWT token: {}", e.getMessage());
         } catch (Exception e) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed");
-            return;
+            log.warn("JWT authentication failed: {}", e.getMessage());
         }
 
         chain.doFilter(request, response);
